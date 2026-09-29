@@ -20,7 +20,7 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 7. Suggested fixes, policy, approvals | done, see below |
 | 8. Dashboard | done, see below |
 | 9. Docker / Kubernetes | done, see below |
-| 10 | see [roadmap](docs/10-roadmap.md) |
+| 10. Testing + hardening | done, see [evaluation and known gaps](docs/11-evaluation.md) |
 
 ## Quickstart
 
@@ -118,3 +118,10 @@ Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_E
 8. [Security boundaries](docs/08-security-boundaries.md)
 9. [MVP acceptance criteria](docs/09-mvp-acceptance-criteria.md)
 10. [Roadmap](docs/10-roadmap.md)
+11. [Evaluation and known gaps](docs/11-evaluation.md)
+
+## Hardening (Phase 10)
+
+- Load test: `INTEGRATION=1 pytest tests/integration/test_ingest_load.py -s` (asserts no loss and >= 1k logs/s).
+- Read APIs are open by default for local use; set `OPSPILOT_VIEWER_TOKEN` to require a bearer token (the dashboard sends it server-side). The approver token also reads.
+- CI adds `import-linter` layering contracts, `pip-audit`, `npm audit` (critical) and a Trivy scan of the rendered manifests.

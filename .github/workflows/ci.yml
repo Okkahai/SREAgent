@@ -47,6 +47,7 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy
+      - run: lint-imports
       - name: Tests (unit + integration against real Postgres/Redis)
         env:
           INTEGRATION: "1"
@@ -182,6 +183,34 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: pip-audit (backend and demo dependencies)
+        run: |
+          python -m pip install -U pip setuptools wheel pip-audit
+          pip install ./backend ./demo/shop
+          pip-audit --skip-editable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Next 15 bundles a postcss build-time advisory whose fix needs Next 16; only critical gates.
+      - run: npm ci && npm audit --omit=dev --audit-level=critical
+        working-directory: web
+      - name: Render manifests
+        run: |
+          mkdir -p /tmp/rendered && kubectl kustomize --load-restrictor=LoadRestrictionsNone deploy/k8s/overlays/kind > /tmp/rendered/all.yaml
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: /tmp/rendered
+          severity: HIGH,CRITICAL
+          exit-code: "1"
 
   secrets-scan:
     runs-on: ubuntu-latest

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from opspilot.adapters.postgres_store import PostgresStore
-from opspilot.api.deps import get_store, require_ingest_token
+from opspilot.api.deps import get_store, require_ingest_token, require_viewer
 
 router = APIRouter(prefix="/v1", tags=["platform"])
 Store = Annotated[PostgresStore, Depends(get_store)]
@@ -30,7 +30,7 @@ def create_deployment(body: DeploymentIn, store: Store) -> dict[str, Any]:
     return store.record_deployment(body.model_dump())
 
 
-@router.get("/deployments")
+@router.get("/deployments", dependencies=[Depends(require_viewer)])
 def list_deployments(
     store: Store,
     service: str | None = None,
@@ -39,13 +39,13 @@ def list_deployments(
     return store.list_deployments(service, limit)
 
 
-@router.get("/services")
+@router.get("/services", dependencies=[Depends(require_viewer)])
 def list_services(store: Store) -> list[dict[str, Any]]:
     """Per-service RED metrics over the last 5 minutes plus latest deployment."""
     return store.list_services()
 
 
-@router.get("/telemetry/stats")
+@router.get("/telemetry/stats", dependencies=[Depends(require_viewer)])
 def telemetry_stats(store: Store) -> dict[str, int]:
     """Rows ingested in the last 10 minutes, per signal (ingest health)."""
     return store.telemetry_stats()

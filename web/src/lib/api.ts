@@ -105,7 +105,11 @@ const API_URL =
 /** Server-side GET. Returns null when the API is unreachable or answers an error. */
 export async function api<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+    const token = process.env.OPSPILOT_VIEWER_TOKEN;
+    const res = await fetch(`${API_URL}${path}`, {
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
     return res.ok ? ((await res.json()) as T) : null;
   } catch {
     return null;

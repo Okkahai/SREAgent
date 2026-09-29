@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     github_write_token: str = ""
     # Bearer token for the `approver` role (approve/reject/execute proposals).
     opspilot_approver_token: str = ""
+    # Optional bearer token for read APIs (`viewer` role). Empty = reads are open (local dev).
+    opspilot_viewer_token: str = ""
     proposal_ttl_minutes: int = 60
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
