@@ -21,8 +21,8 @@ ps: ## Show service status
 test: ## Backend unit tests (INTEGRATION=1 make test needs the stack up)
 	cd backend && python -m pytest -q
 
-lint: ## Ruff + mypy (backend), eslint + tsc (web)
-	cd backend && ruff check . && ruff format --check . && mypy
+lint: ## Ruff + mypy + import-linter (backend), eslint + tsc (web)
+	cd backend && ruff check . && ruff format --check . && mypy && lint-imports
 	cd web && npm run lint && npm run typecheck
 
 fmt: ## Auto-format backend
