@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+node_modules/
+.next/
+next-env.d.ts
+coverage/
+.DS_Store
+*.tsbuildinfo
