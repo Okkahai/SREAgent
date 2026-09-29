@@ -129,3 +129,8 @@ Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_E
 ## Investigating without an API key
 
 Set `OPSPILOT_INVESTIGATOR=rules` to use the built-in rule-based investigator instead of the LLM (`llm` is the default and needs `ANTHROPIC_API_KEY`; `auto` uses the LLM when a key is set, otherwise the rules). It runs the same read-only tools and the same evidence capture and verifier, and reports three patterns as HYPOTHESES: a saturated DB connection pool, errors concentrated in the newly deployed version (a correlation, never a proven cause), and failures dominated by an outbound dependency call. It does no code analysis, gives no free-form reasoning and proposes no actions; anything else is reported as inconclusive with the unknowns listed. Its findings are marked `rules-v1` as the model.
+
+## Troubleshooting
+
+- `port is already allocated` on 5432, 6379, 3000 or 8000: another Postgres or Redis is using it. Set `POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` (or `WEB_HOST_PORT` for the dashboard, `API_HOST_PORT` for the API) in `.env` (for example `REDIS_HOST_PORT=6380`) and run `docker compose --profile demo up -d --wait` again. Containers talk to each other on the internal network, so only your host access changes.
+- Windows: use `copy .env.example .env`, and run the `scripts/*.sh` helpers from Git Bash or WSL.
