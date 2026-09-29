@@ -6,6 +6,12 @@ gw=http://127.0.0.1:8080
 code() { curl -s -o /dev/null -w '%{http_code}' -X POST "$gw/checkout" -H 'content-type: application/json' -d '{}'; }
 count_errors() { local n=0; for _ in $(seq 1 20); do [ "$(code)" != 200 ] && n=$((n+1)); done; echo "$n"; }
 
+# Burst of concurrent requests: exposes pool saturation that serial requests never reach.
+count_errors_burst() {
+  seq 1 60 | xargs -P 30 -I{} curl -s -o /dev/null -w '%{http_code}\n' -X POST "$gw/checkout" \
+    -H 'content-type: application/json' -d '{}' | grep -vc '^200$' || true
+}
+
 echo "healthy baseline"; [ "$(count_errors)" -eq 0 ] || { echo "FAIL: baseline has errors"; exit 1; }
 
 echo "inject payments down"; ./scripts/fault.sh payments set down >/dev/null
@@ -23,7 +29,7 @@ echo "inject checkout db_timeout"; ./scripts/fault.sh checkout set db_timeout >/
 echo "bad deployment (checkout pool size 20 -> 2) under load"
 ./scripts/deploy.sh bad >/dev/null 2>&1
 sleep 20
-[ "$(count_errors)" -ge 1 ] || { echo "FAIL: bad deployment did not degrade checkout"; exit 1; }
+[ "$(count_errors_burst)" -ge 5 ] || { echo "FAIL: bad deployment did not degrade checkout"; exit 1; }
 ./scripts/deploy.sh good >/dev/null 2>&1
 sleep 20
 
