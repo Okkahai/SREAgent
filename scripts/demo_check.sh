@@ -39,6 +39,7 @@ echo "telemetry at collector"
 sleep 6
 logs="$(docker compose logs otel-collector 2>&1)"
 for sig in traces metrics logs; do
-  echo "$logs" | grep -qE "(otelcol.signal|data_type)\": \"$sig\"" || { echo "FAIL: no $sig at collector"; exit 1; }
+  # here-string, not a pipe: grep -q exits early and would SIGPIPE echo under pipefail
+  grep -qE "\"kind\": \"exporter\", \"data_type\": \"$sig\"" <<<"$logs" || { echo "FAIL: no $sig at collector"; exit 1; }
 done
 echo "OK"
