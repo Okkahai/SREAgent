@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     llm_model: str = "claude-sonnet-5-5"
     agent_max_steps: int = 8
+    # Read-only GitHub access (contents/metadata/actions read). Empty disables commit evidence.
+    github_token: str = ""
+    github_repo: str = ""  # default "owner/name" for deployments that do not name a repository
+    github_webhook_secret: str = ""
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
 

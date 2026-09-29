@@ -76,7 +76,11 @@ def investigate_pending() -> int:
 def investigate(investigation_id: str) -> str:
     from opspilot.agent.llm import AnthropicLLM
     from opspilot.agent.runner import run_investigation
+    from opspilot.integrations.github import GitHubClient
 
     s = get_settings()
     llm = AnthropicLLM(s.anthropic_api_key, s.llm_model) if s.anthropic_api_key else None
-    return run_investigation(get_engine(), investigation_id, llm, s.agent_max_steps)
+    gh = GitHubClient(s.github_token) if s.github_token else None
+    return run_investigation(
+        get_engine(), investigation_id, llm, s.agent_max_steps, gh, s.github_repo
+    )

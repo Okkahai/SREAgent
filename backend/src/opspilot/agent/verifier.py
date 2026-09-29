@@ -42,6 +42,9 @@ def verify(output: dict[str, Any], evidence: dict[str, str]) -> Verified:
         if category == "DEPLOYMENT" and "DEPLOYMENT" not in types:
             v.rejected.append(f"deployment blamed without deployment evidence: {statement[:80]}")
             continue
+        if category in ("CODE", "CONFIG") and "COMMIT" not in types:
+            v.rejected.append(f"code/config cause without commit evidence: {statement[:80]}")
+            continue
         try:
             claimed = float(h.get("confidence", 0))
         except (TypeError, ValueError):

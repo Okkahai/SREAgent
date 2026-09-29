@@ -1,13 +1,13 @@
 from opspilot.agent.llm import redact
 from opspilot.agent.verifier import confidence_cap, verify
 
-EV = {"a": "METRIC", "b": "LOG", "c": "DEPLOYMENT", "d": "LOG"}
+EV = {"a": "METRIC", "b": "LOG", "c": "DEPLOYMENT", "d": "LOG", "e": "COMMIT"}
 
 
 def hyp(**kw):
     return {
         "statement": "s",
-        "category": "CODE",
+        "category": "RESOURCE",
         "confidence": 0.95,
         "evidence_ids": ["a", "b", "d"],
         **kw,
@@ -45,3 +45,10 @@ def test_deployment_blame_needs_deployment_evidence():
 def test_redact_strips_secrets_and_emails():
     out = redact("Authorization: Bearer abcdefghijkl user bob@example.com api_key=supersecret1")
     assert "abcdefghijkl" not in out and "bob@example.com" not in out and "supersecret1" not in out
+
+
+def test_code_cause_needs_commit_evidence():
+    h = hyp(category="CODE", evidence_ids=["a", "b", "d"])
+    assert verify({"summary": "", "hypotheses": [h], "unknowns": []}, EV).hypotheses == []
+    h = hyp(category="CODE", evidence_ids=["a", "e"])
+    assert len(verify({"summary": "", "hypotheses": [h], "unknowns": []}, EV).hypotheses) == 1

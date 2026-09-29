@@ -257,6 +257,32 @@ def get_incident(conn: Connection, ident: str) -> Row | None:
             {"i": inc["id"]},
         ).mappings()
     ]
+    sha = (inc["deployment"] or {}).get("commit_sha")
+    inc["commit"] = None
+    inc["ci_runs"] = []
+    if sha:
+        c = (
+            conn.execute(
+                text(
+                    "SELECT repo, sha, message, author, committed_at, url, files, owners FROM commits "
+                    "WHERE sha = :s ORDER BY fetched_at DESC LIMIT 1"
+                ),
+                {"s": sha},
+            )
+            .mappings()
+            .first()
+        )
+        inc["commit"] = dict(c) if c else None
+        inc["ci_runs"] = [
+            dict(r)
+            for r in conn.execute(
+                text(
+                    "SELECT name, status, conclusion, html_url, updated_at FROM ci_runs "
+                    "WHERE head_sha = :s ORDER BY updated_at DESC LIMIT 10"
+                ),
+                {"s": sha},
+            ).mappings()
+        ]
     inc["investigations"] = [
         dict(r)
         for r in conn.execute(

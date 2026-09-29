@@ -16,7 +16,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 3. Ingestion | done, see below |
 | 4. Incident detection | done, see below |
 | 5. AI investigation | done, see below |
-| 6–10 | see [roadmap](docs/10-roadmap.md) |
+| 6. GitHub integration (read-only) | done, see below |
+| 7–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -76,6 +77,10 @@ Development: `make test`, `make lint`, `make fmt`. Backend needs Python 3.11 (`p
 Every incident without an investigation is claimed by the `investigate_pending` beat task and run by a worker: a bounded loop of **read-only** tools (error rate, pool saturation, error logs, error spans, errors by version, recent deployments). Each tool result is stored server-side as OBSERVATION evidence; the model can only cite evidence ids. A deterministic verifier drops unsupported hypotheses, caps confidence by evidence quantity and signal diversity, and never allows `CONFIRMED_FACT`. Findings appear in `GET /v1/incidents/{id}` (`investigations`, hypothesis evidence, timeline).
 
 Set `ANTHROPIC_API_KEY` (and optionally `LLM_MODEL`) in `.env`. Without a key, or if the provider is down, the investigation is recorded as `FAILED` (retried up to 3 times) and detection is unaffected. Details: [docs/07](docs/07-ai-agent-responsibilities.md).
+
+## GitHub integration (Phase 6, read-only)
+
+Set `GITHUB_TOKEN` (fine-grained, read-only: Contents, Metadata, Actions) and `GITHUB_REPO=owner/name` (a deployment may override with `metadata.repository`). The `commit_changes` investigation tool then fetches the deployed commit's changed files, diff excerpts and CODEOWNERS owners, caches them in `commits`, and records them as COMMIT evidence; `GET /v1/incidents/{id}` shows the suspect `commit` and `ci_runs`. Without a token the tool reports itself unavailable and the agent may not claim a code cause. `POST /v1/webhooks/github` (HMAC-verified, needs `GITHUB_WEBHOOK_SECRET`) records `workflow_run` events. The client issues GET requests only.
 
 ## Docs
 

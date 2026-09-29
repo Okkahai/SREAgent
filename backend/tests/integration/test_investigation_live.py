@@ -14,7 +14,9 @@ from opspilot.agent import tools as T
 from opspilot.agent.runner import claim_pending, run_investigation
 from opspilot.db.engine import get_engine
 from opspilot.db.partitions import ensure_partition
+from opspilot.integrations.github import GitHubClient
 from tests.fakes import FakeLLM, Final, LLMUnavailable, ToolCall
+from tests.unit.test_github import transport
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("INTEGRATION"), reason="set INTEGRATION=1 with Postgres and Redis running"
@@ -73,9 +75,9 @@ def status(engine: Any, inc: Any) -> str:
         return c.execute(text("SELECT status FROM incidents WHERE id=:i"), {"i": inc}).scalar_one()
 
 
-def run(engine: Any, llm: Any) -> tuple[str, Any]:
+def run(engine: Any, llm: Any, **kw: Any) -> tuple[str, Any]:
     (inv,) = claim_pending(engine)
-    return run_investigation(engine, inv, llm), inv
+    return run_investigation(engine, inv, llm, **kw), inv
 
 
 def test_tools_are_read_only() -> None:
@@ -86,6 +88,7 @@ def test_tools_are_read_only() -> None:
         "error_spans",
         "errors_by_version",
         "recent_deployments",
+        "commit_changes",
     }
 
 
@@ -181,3 +184,56 @@ def test_step_budget_is_enforced(db: Any) -> None:
     engine, _ = db
     outcome, _ = run(engine, FakeLLM([ToolCall(str(i), "error_logs", {}) for i in range(20)]))
     assert outcome == "FAILED"
+
+
+def test_commit_evidence_supports_code_cause_and_is_cached(db: Any) -> None:
+    engine, inc = db
+    gh = GitHubClient("t", transport([]))
+    llm = FakeLLM(
+        [
+            ToolCall("1", "error_logs", {}),
+            ToolCall("2", "commit_changes", {}),
+            ToolCall("3", "recent_deployments", {}),
+            lambda h: Final(
+                {
+                    "summary": "pool shrunk by commit",
+                    "hypotheses": [
+                        {
+                            "statement": "demo/shop/x.py lowers the pool",
+                            "category": "CODE",
+                            "confidence": 0.95,
+                            "evidence_ids": ids_from(h),
+                        }
+                    ],
+                    "unknowns": [],
+                }
+            ),
+        ]
+    )
+    with engine.begin() as c:
+        c.execute(text("UPDATE deployments SET commit_sha = 'abc123'"))
+    outcome, _ = run(engine, llm, github=gh, default_repo="o/r")
+    assert outcome == "COMPLETED" and status(engine, inc) == "IDENTIFIED"
+    with engine.connect() as c:
+        assert c.execute(text("SELECT owners FROM commits")).scalar_one() == ["@org/shop"]
+        conf = c.execute(text("SELECT confidence FROM incidents")).scalar_one()
+    assert float(conf) == 0.9  # LOG + COMMIT + DEPLOYMENT
+
+
+def test_commit_tool_unavailable_without_github(db: Any) -> None:
+    engine, inc = db
+    llm = FakeLLM(
+        [
+            ToolCall("1", "commit_changes", {}),
+            Final({"summary": "s", "hypotheses": [], "unknowns": ["no commit data"]}),
+        ]
+    )
+    outcome, _ = run(engine, llm)
+    assert outcome == "COMPLETED"
+    assert "unavailable" in llm.prompts[1][0][1]
+    with engine.connect() as c:
+        assert (
+            c.execute(text("SELECT count(*) FROM evidence WHERE created_by='agent'")).scalar_one()
+            == 0
+        )
+        assert c.execute(text("SELECT error FROM agent_steps")).scalar_one()

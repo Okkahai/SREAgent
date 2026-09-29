@@ -89,3 +89,10 @@ A golden set of injected failures (doc 09) with known root causes; metrics: root
 - Tool results pass through a redaction step before reaching the provider and are framed as `untrusted_data`.
 - Not yet: commit/diff evidence (Phase 6), so no hypothesis may exceed what telemetry alone supports; a golden-set accuracy evaluation (Phase 10).
 - Tests use a scripted `FakeLLM` (`backend/tests/fakes.py`); no production path uses fake intelligence.
+
+## Phase 6 implementation notes
+- `integrations/github.py` is a GET-only client (contents, commits); `integrations/codeowners.py` maps changed paths to owners (last matching rule wins). Commits are cached on first use (`commits`), so investigations are reproducible and rate-limit friendly.
+- Deployment to commit: the deployment's `commit_sha` (from the deploy event) plus `metadata.repository` or `GITHUB_REPO`.
+- `commit_changes` is a normal read tool. When it cannot run (no token, no SHA, unknown commit, GitHub error) it records an errored agent step, produces no evidence and tells the model so.
+- The verifier now rejects `CODE`/`CONFIG` hypotheses that do not cite COMMIT evidence, so a specific code cause requires the diff.
+- Webhooks: signature-verified, only `workflow_run` is stored. Push/PR/deployment webhook handling and GitHub App auth are deferred; a fine-grained token is used until Phase 9/10 hardening.
