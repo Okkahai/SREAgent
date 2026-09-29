@@ -1,4 +1,4 @@
-.PHONY: demo-up demo-down demo-telemetry demo-check help up down logs ps build test lint fmt web-check check-compose smoke
+.PHONY: k8s-render kind-up kind-check kind-down demo-up demo-down demo-telemetry demo-check help up down logs ps build test lint fmt web-check check-compose smoke
 
 help: ## Show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -47,3 +47,15 @@ demo-telemetry: ## Show OTLP telemetry arriving at the collector
 
 demo-check: ## Smoke test: demo traffic works and faults change behaviour
 	./scripts/demo_check.sh
+
+k8s-render: ## Render the kind overlay (Kustomize)
+	kubectl kustomize --load-restrictor=LoadRestrictionsNone deploy/k8s/overlays/kind
+
+kind-up: ## Create a kind cluster, build/load images and deploy OpsPilot + demo
+	./scripts/kind.sh up
+
+kind-check: ## Run the failure-injection scenario against the kind deployment
+	./scripts/kind.sh check
+
+kind-down: ## Delete the kind cluster
+	./scripts/kind.sh down

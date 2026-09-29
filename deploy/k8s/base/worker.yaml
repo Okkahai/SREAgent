@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: worker
+automountServiceAccountToken: false
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "worker"
+        opspilot.io/role: "backend"
+    spec:
+      serviceAccountName: worker
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: wait-for-migration
+          image: opspilot/backend
+          command: ["sh", "-c", "until alembic current 2>/dev/null | grep -q '(head)'; do echo waiting for migrations; sleep 2; done"]
+          envFrom:
+            - configMapRef: {name: opspilot-config}
+            - secretRef: {name: opspilot-secrets}
+          resources:
+            requests: {cpu: 10m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      containers:
+        - name: worker
+          image: opspilot/backend
+          args: ["celery", "-A", "opspilot.workers.celery_app", "worker", "-l", "info", "-Q", "default"]
+          envFrom:
+            - configMapRef: {name: opspilot-config}
+            - secretRef: {name: opspilot-secrets}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 1, memory: 768Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: beat
+automountServiceAccountToken: false
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: beat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "beat"
+        opspilot.io/role: "backend"
+    spec:
+      serviceAccountName: beat
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: wait-for-migration
+          image: opspilot/backend
+          command: ["sh", "-c", "until alembic current 2>/dev/null | grep -q '(head)'; do echo waiting for migrations; sleep 2; done"]
+          envFrom:
+            - configMapRef: {name: opspilot-config}
+            - secretRef: {name: opspilot-secrets}
+          resources:
+            requests: {cpu: 10m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      containers:
+        - name: beat
+          image: opspilot/backend
+          args: ["celery", "-A", "opspilot.workers.celery_app", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+          envFrom:
+            - configMapRef: {name: opspilot-config}
+            - secretRef: {name: opspilot-secrets}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 384Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+

@@ -1,0 +1,27 @@
+# Local/CI overlay for kind: dev secret, faster recovery window, demo shop, locally loaded images.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: opspilot
+resources:
+  - ../../base
+  - secret.yaml
+components:
+  - ../../demo
+images:
+  - {name: opspilot/backend, newTag: ci}
+  - {name: opspilot/web, newTag: ci}
+  - {name: opspilot/demo-shop, newTag: ci}
+patches:
+  - target: {kind: ConfigMap, name: opspilot-config}
+    patch: |-
+      - {op: replace, path: /data/DETECTION_RECOVERY_MINUTES, value: "1"}
+      - {op: replace, path: /data/OPSPILOT_ENV, value: dev}
+  - target: {kind: Deployment, name: api}
+    patch: |-
+      - {op: replace, path: /spec/replicas, value: 1}
+  - target: {kind: HorizontalPodAutoscaler, name: api}
+    patch: |-
+      - {op: replace, path: /spec/minReplicas, value: 1}
+  - target: {kind: PodDisruptionBudget, name: api}
+    patch: |-
+      - {op: replace, path: /spec/minAvailable, value: 0}

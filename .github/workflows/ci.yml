@@ -116,6 +116,41 @@ jobs:
       - if: always()
         run: docker compose down -v
 
+  k8s-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render and validate manifests
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          kubectl kustomize --load-restrictor=LoadRestrictionsNone deploy/k8s/overlays/kind > rendered.yaml
+          ./kubeconform -strict -summary rendered.yaml
+
+  kind-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: opspilot
+      - name: Build images, load into kind, deploy with Kustomize
+        run: |
+          docker build -q -t opspilot/backend:ci backend
+          docker build -q -t opspilot/web:ci web
+          docker build -q -t opspilot/demo-shop:ci demo/shop
+          kind load docker-image --name opspilot opspilot/backend:ci opspilot/web:ci opspilot/demo-shop:ci
+          ./scripts/kind.sh deploy
+      - name: Failure-injection scenario on Kubernetes
+        run: ./scripts/kind.sh check
+      - name: Dump cluster state on failure
+        if: failure()
+        run: |
+          kubectl -n opspilot get pods -o wide
+          kubectl -n opspilot describe pods | tail -150
+          for d in api worker beat otel-collector checkout; do echo "== $d"; kubectl -n opspilot logs deployment/$d --tail=80 || true; done
+          kubectl -n opspilot logs job/migrate --tail=50 || true
+
   demo:
     runs-on: ubuntu-latest
     timeout-minutes: 30
