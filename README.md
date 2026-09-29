@@ -11,8 +11,9 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | Phase | State |
 |-------|-------|
 | Design docs (10 deliverables) | done, see [docs/](docs/) |
-| 1. Architecture + local environment | done (this repo skeleton) |
-| 2–10 | see [roadmap](docs/10-roadmap.md) |
+| 1. Architecture + local environment | done |
+| 2. Demo app + observability | done, see below |
+| 3–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -24,6 +25,23 @@ make smoke     # health checks
 - API: http://localhost:8000 (`/healthz`, `/readyz`, `/docs`)
 - Web: http://localhost:3000
 - OTLP: `localhost:4317` (gRPC), `localhost:4318` (HTTP)
+
+## Demo application (Phase 2)
+
+```bash
+make demo-up                                   # gateway, checkout, payments, shop-db, load generator
+make demo-telemetry                            # traces/metrics/logs arriving at the OTel collector
+scripts/fault.sh payments set down             # dependency failure
+scripts/fault.sh checkout set http_500 '{"rate":0.5}'
+scripts/fault.sh checkout set db_timeout
+scripts/fault.sh checkout set memory_spike '{"mb":300}'
+scripts/fault.sh checkout clear                # revert
+scripts/deploy.sh bad                          # real redeploy: v1.1.0, DB pool 20 -> 2
+scripts/deploy.sh good                         # roll back to v1.0.0
+make demo-check                                # automated end-to-end failure-injection check
+```
+
+Every failure changes real behaviour (errors, latency, saturation), so the resulting telemetry is genuine. Services emit OTLP traces, metrics and logs with `service.name`, `service.version`, `deployment.environment.name` and `vcs.ref.head.revision`, and logs carry `trace_id`/`span_id`. Details: [demo/README.md](demo/README.md).
 
 Development: `make test`, `make lint`, `make fmt`. Backend needs Python 3.11 (`pip install -e 'backend[dev]'`), web needs Node 22 (`npm ci` in `web/`).
 

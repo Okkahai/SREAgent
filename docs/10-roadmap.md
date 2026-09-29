@@ -5,7 +5,7 @@ Each phase is a small series of PRs. Exit criteria must be demonstrable.
 | Phase | Scope | Exit criteria |
 |-------|-------|---------------|
 | **1. Architecture + local env** | Design docs; repo skeleton; docker-compose (Postgres, Redis, OTel Collector, API, worker, web); FastAPI health/readiness; Next.js skeleton; Makefile; CI | `make up` healthy; `/healthz` & `/readyz` pass (DB+Redis checked); CI green; collector receives OTLP |
-| **2. Demo app + observability** | Instrumented microservices, load generator, fault injection, Postgres for demo, Collector pipelines, versioned "bad deploy" | Each fault visibly changes telemetry (debug exporter / logs) |
+| **2. Demo app + observability** (done) | Instrumented microservices, load generator, fault injection, Postgres for demo, Collector pipelines, versioned "bad deploy" | Each fault visibly changes telemetry (debug exporter / logs) |
 | **3. Ingestion** | Alembic + core tables; OTLP/HTTP ingest; deployments API; rollups; retention | Demo telemetry queryable in Postgres with service/version/trace correlation |
 | **4. Incident detection** | Rules engine, beat scheduler, incident state machine, timeline, dedupe/reopen | A2 scenario opens/resolves incidents; A1 no false positives |
 | **5. AI investigation** | Agent runtime, read-only tools, evidence capture, verifier, confidence caps, output schema, LLM port | A3, A4, A5, A6, A9 pass |

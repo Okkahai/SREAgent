@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps build test lint fmt web-check check-compose smoke
+.PHONY: demo-up demo-down demo-telemetry demo-check help up down logs ps build test lint fmt web-check check-compose smoke
 
 help: ## Show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -35,3 +35,15 @@ smoke: ## Hit health endpoints of the running stack
 	curl -fsS localhost:8000/healthz && echo
 	curl -fsS localhost:8000/readyz && echo
 	curl -fsS -o /dev/null -w "web: %{http_code}\n" localhost:3000
+
+demo-up: .env ## Start the stack plus the demo shop and load generator
+	docker compose --profile demo up -d --build --wait
+
+demo-down: ## Stop everything including demo services
+	docker compose --profile demo down
+
+demo-telemetry: ## Show OTLP telemetry arriving at the collector
+	docker compose logs --tail=40 otel-collector
+
+demo-check: ## Smoke test: demo traffic works and faults change behaviour
+	./scripts/demo_check.sh

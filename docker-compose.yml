@@ -82,5 +82,75 @@ services:
     depends_on:
       api: {condition: service_healthy}
 
+  # ---- Demo application (Phase 2): docker compose --profile demo up ----
+  shop-db:
+    profiles: [demo]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  payments:
+    profiles: [demo]
+    build: ./demo/shop
+    command: ["uvicorn", "shop.payments:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment: &demo-env
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      DEPLOY_ENV: demo
+      SERVICE_VERSION: ${PAYMENTS_VERSION:-1.0.0}
+      COMMIT_SHA: ${PAYMENTS_COMMIT:-unknown}
+    ports:
+      - "127.0.0.1:8082:8000"
+    depends_on:
+      otel-collector: {condition: service_started}
+
+  checkout:
+    profiles: [demo]
+    build: ./demo/shop
+    command: ["uvicorn", "shop.checkout:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *demo-env
+      SERVICE_VERSION: ${CHECKOUT_VERSION:-1.0.0}
+      COMMIT_SHA: ${CHECKOUT_COMMIT:-unknown}
+      # The knob a "bad deployment" changes (scripts/deploy.sh bad).
+      DB_POOL_SIZE: ${CHECKOUT_DB_POOL_SIZE:-20}
+      SHOP_DATABASE_URL: postgresql+psycopg://shop:shop@shop-db:5432/shop
+      PAYMENTS_URL: http://payments:8000
+    ports:
+      - "127.0.0.1:8081:8000"
+    depends_on:
+      shop-db: {condition: service_healthy}
+      payments: {condition: service_started}
+
+  gateway:
+    profiles: [demo]
+    build: ./demo/shop
+    command: ["uvicorn", "shop.gateway:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *demo-env
+      SERVICE_VERSION: ${GATEWAY_VERSION:-1.0.0}
+      COMMIT_SHA: ${GATEWAY_COMMIT:-unknown}
+      CHECKOUT_URL: http://checkout:8000
+    ports:
+      - "127.0.0.1:8080:8000"
+    depends_on:
+      checkout: {condition: service_started}
+
+  loadgen:
+    profiles: [demo]
+    build: ./demo/shop
+    command: ["python", "-m", "shop.loadgen"]
+    environment:
+      TARGET_URL: http://gateway:8000
+      LOAD_RPS: ${LOAD_RPS:-30}
+    depends_on:
+      gateway: {condition: service_started}
+
 volumes:
   pgdata:

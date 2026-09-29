@@ -89,6 +89,36 @@ jobs:
       - if: always()
         run: docker compose down -v
 
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - name: Start stack with demo profile
+        run: docker compose --profile demo up -d --build --wait --wait-timeout 300
+      - name: Failure-injection check (healthy, faults, bad deploy, recovery, telemetry)
+        run: ./scripts/demo_check.sh
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose --profile demo logs --no-color --tail=200
+      - if: always()
+        run: docker compose --profile demo down -v
+
+  demo-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo/shop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -q
+
   secrets-scan:
     runs-on: ubuntu-latest
     steps:
