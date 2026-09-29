@@ -239,6 +239,34 @@ FINDINGS_SCHEMA: dict[str, Any] = {
             },
         },
         "unknowns": {"type": "array", "items": {"type": "string"}},
+        "recommended_actions": {
+            "type": "array",
+            "description": "Optional. Only when a verified hypothesis supports it. Risk is assigned by policy.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "OPEN_PR",
+                            "RUNBOOK",
+                            "ROLLBACK",
+                            "RESTART",
+                            "SCALE",
+                            "CONFIG_CHANGE",
+                        ],
+                    },
+                    "title": {"type": "string"},
+                    "rationale": {"type": "string"},
+                    "parameters": {
+                        "type": "object",
+                        "description": "OPEN_PR: {files:[{path,content}]} (max 5 small files, full new content). "
+                        "Runbook types: {steps:[string]}.",
+                    },
+                },
+                "required": ["type", "title", "rationale"],
+            },
+        },
     },
     "required": ["summary", "hypotheses", "unknowns"],
 }

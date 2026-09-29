@@ -10,7 +10,7 @@ Each phase is a small series of PRs. Exit criteria must be demonstrable.
 | **4. Incident detection** (done) | Rules engine, beat scheduler, incident state machine, timeline, dedupe/reopen | A2 scenario opens/resolves incidents; A1 no false positives |
 | **5. AI investigation** (done) | Agent runtime, read-only tools, evidence capture, verifier, confidence caps, output schema, LLM port | A3, A4, A5, A6, A9 pass |
 | **6. GitHub integration** (done) | GitHub App (read-only), commit/diff/CODEOWNERS sync, deployment→commit mapping, webhooks, CI run tracking | Incident shows suspect commit with owners and changed files |
-| **7. Suggested fixes** | Remediation planner, policy engine, approvals, PR executor (write scope), runbooks | A7, A8 pass |
+| **7. Suggested fixes** (done) | Remediation planner, policy engine, approvals, PR executor (write scope), runbooks | A7, A8 pass |
 | **8. Dashboard** | Overview, incident detail (timeline/evidence/logs/metrics/traces), services, deployments; live data | All views driven by API; e2e Playwright smoke |
 | **9. Docker/K8s** | Production Dockerfiles, Helm/Kustomize, kind in CI, NetworkPolicies, HPA, OTel collector deployment | Same scenario runs on kind |
 | **10. Testing + hardening** | Load test, e2e failure-injection suite in CI, security scanning (gitleaks, Trivy, pip-audit), import-linter, RBAC hardening, docs polish, eval report | All MVP criteria (doc 09) met |

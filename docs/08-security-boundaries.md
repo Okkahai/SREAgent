@@ -67,3 +67,10 @@ Additional guards: proposals expire (default 1 h); approver ≠ nothing-else (mu
 - **Info disclosure:** secrets in telemetry → redaction; least-privilege tokens.
 - **DoS:** telemetry flood → rate limiting, collector limiter, partition/retention.
 - **Elevation:** LLM triggers action → structurally impossible (no write tools; executor gated).
+
+## Phase 7 implementation notes
+- Policy: `domain/policy.py`. Risk comes only from the table; unknown types are DESTRUCTIVE and refused. `OPEN_PR` files are validated (max 5 files, 20 KB each, no `.github/`, CODEOWNERS, `.env`, path traversal). The target repository is never taken from model output.
+- Approval binds to `payload_hash` (sha256 of incident, type, parameters); a changed payload cannot be executed on an old approval. A database trigger refuses `action_executions` rows without a matching APPROVE, and `audit_log` rejects UPDATE/DELETE.
+- Roles: a single `approver` bearer token plus a required `X-OpsPilot-Actor` name (recorded in approvals and audit). Viewer/admin roles and OIDC arrive with Phase 10.
+- Executor: `integrations/github_write.py` only lists/creates refs, contents and PRs under `opspilot/`; there is no merge, delete or force-push call. It uses `GITHUB_WRITE_TOKEN`, separate from the investigator's read-only token. Kill switch `OPSPILOT_ACTIONS_ENABLED` defaults to false.
+- Not done: prod environment confirmation (no HIGH action is executable yet), automatic post-action monitoring transitions (a PR fixes nothing until a human merges it).
