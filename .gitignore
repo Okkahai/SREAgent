@@ -11,3 +11,4 @@ node_modules/
 next-env.d.ts
 coverage/
 .DS_Store
+*.tsbuildinfo
