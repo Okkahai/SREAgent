@@ -62,7 +62,7 @@ services:
     command: ["sh", "-c", "alembic upgrade head && exec uvicorn opspilot.main:app --host 0.0.0.0 --port 8000"]
     environment: *backend-env
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${API_HOST_PORT:-8000}:8000"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -93,7 +93,7 @@ services:
       API_INTERNAL_URL: http://api:8000
       OPSPILOT_VIEWER_TOKEN: ${OPSPILOT_VIEWER_TOKEN:-}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
     depends_on:
       api: {condition: service_healthy}
 

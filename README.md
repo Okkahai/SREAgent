@@ -132,5 +132,5 @@ Set `OPSPILOT_INVESTIGATOR=rules` to use the built-in rule-based investigator in
 
 ## Troubleshooting
 
-- `port is already allocated` on 5432 or 6379: another Postgres or Redis is using it. Set `POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` in `.env` (for example `REDIS_HOST_PORT=6380`) and run `docker compose --profile demo up -d --wait` again. Containers talk to each other on the internal network, so only your host access changes.
+- `port is already allocated` on 5432, 6379, 3000 or 8000: another Postgres or Redis is using it. Set `POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` (or `WEB_HOST_PORT` for the dashboard, `API_HOST_PORT` for the API) in `.env` (for example `REDIS_HOST_PORT=6380`) and run `docker compose --profile demo up -d --wait` again. Containers talk to each other on the internal network, so only your host access changes.
 - Windows: use `copy .env.example .env`, and run the `scripts/*.sh` helpers from Git Bash or WSL.
