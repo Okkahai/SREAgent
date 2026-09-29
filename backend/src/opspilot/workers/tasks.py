@@ -74,12 +74,19 @@ def investigate_pending() -> int:
 
 @celery_app.task(name="opspilot.workers.tasks.investigate")  # type: ignore[untyped-decorator]
 def investigate(investigation_id: str) -> str:
-    from opspilot.agent.llm import AnthropicLLM
+    from opspilot.agent.heuristic import HeuristicInvestigator
+    from opspilot.agent.llm import LLM, AnthropicLLM
     from opspilot.agent.runner import run_investigation
     from opspilot.integrations.github import GitHubClient
 
     s = get_settings()
-    llm = AnthropicLLM(s.anthropic_api_key, s.llm_model) if s.anthropic_api_key else None
+    llm: LLM | None = None
+    if s.opspilot_investigator == "rules" or (
+        s.opspilot_investigator == "auto" and not s.anthropic_api_key
+    ):
+        llm = HeuristicInvestigator()
+    elif s.anthropic_api_key:
+        llm = AnthropicLLM(s.anthropic_api_key, s.llm_model)
     gh = GitHubClient(s.github_token) if s.github_token else None
     return run_investigation(
         get_engine(),

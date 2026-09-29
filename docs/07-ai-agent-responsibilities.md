@@ -100,3 +100,6 @@ A golden set of injected failures (doc 09) with known root causes; metrics: root
 ## Phase 7 implementation notes
 - The planner is part of `submit_findings` (`recommended_actions`), not a second call. Actions are considered only when at least one hypothesis survived verification, at most 3 are kept, and types outside the policy's proposable set are rejected. The runner stores them via `services/actions.create_proposals`, which lets the policy engine set risk.
 - Timeline gets `PROPOSAL`, `APPROVAL` (CONFIRMED_FACT: a human decision) and `ACTION` events. Incident detail lists proposals; `GET /v1/incidents/{id}/proposals` has full parameters and the hash to approve.
+
+## Rule-based investigator (no API key)
+`agent/heuristic.py` implements the `LLM` port with fixed tool calls and explicit rules (pool saturation, version-concentrated errors, dependency-dominated failures). It cannot cite evidence the tools did not return, is capped by the same verifier, never proposes actions and never claims a code cause. Select it with `OPSPILOT_INVESTIGATOR=rules` (or `auto`). It is not a substitute for model reasoning: incidents outside its three rules end inconclusive.
