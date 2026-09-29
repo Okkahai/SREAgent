@@ -30,6 +30,10 @@ Status of every MVP criterion in [doc 09](09-mvp-acceptance-criteria.md), stated
 | Architecture boundaries | `import-linter` contracts in `backend/pyproject.toml`, run in CI |
 | Kubernetes | `kind-e2e` runs the same failure scenario on kind |
 
+## Rule-based investigator
+
+Unit tests cover each rule (including that a dependency failure is not blamed on the deploy), `test_rule_based_investigator_needs_no_key` runs it end to end on a real database, and the `demo` CI job runs it against the live failure-injection stack and asserts the investigation completes. What it finds on the real bad-deploy telemetry is printed in that job's log, not asserted.
+
 ## Not measured / not done
 
 - **Root-cause accuracy, hallucination rate, LLM cost per investigation**: no live-model evaluation has been run (no API key in CI). The golden failure set is the demo scenarios only.

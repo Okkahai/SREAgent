@@ -125,3 +125,7 @@ Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_E
 - Load test: `INTEGRATION=1 pytest tests/integration/test_ingest_load.py -s` (asserts no loss and >= 1k logs/s).
 - Read APIs are open by default for local use; set `OPSPILOT_VIEWER_TOKEN` to require a bearer token (the dashboard sends it server-side). The approver token also reads.
 - CI adds `import-linter` layering contracts, `pip-audit`, `npm audit` (critical) and a Trivy scan of the rendered manifests.
+
+## Investigating without an API key
+
+Set `OPSPILOT_INVESTIGATOR=rules` to use the built-in rule-based investigator instead of the LLM (`llm` is the default and needs `ANTHROPIC_API_KEY`; `auto` uses the LLM when a key is set, otherwise the rules). It runs the same read-only tools and the same evidence capture and verifier, and reports three patterns as HYPOTHESES: a saturated DB connection pool, errors concentrated in the newly deployed version (a correlation, never a proven cause), and failures dominated by an outbound dependency call. It does no code analysis, gives no free-form reasoning and proposes no actions; anything else is reported as inconclusive with the unknowns listed. Its findings are marked `rules-v1` as the model.

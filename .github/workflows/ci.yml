@@ -159,10 +159,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
       - run: echo DETECTION_RECOVERY_MINUTES=1 >> .env
+      - run: echo OPSPILOT_INVESTIGATOR=rules >> .env
       - name: Start stack with demo profile
         run: docker compose --profile demo up -d --build --wait --wait-timeout 300
       - name: Failure-injection check (healthy, faults, bad deploy, recovery, telemetry)
-        run: ./scripts/demo_check.sh
+        run: EXPECT_RULES_INVESTIGATION=1 ./scripts/demo_check.sh
       - name: Dump logs on failure
         if: failure()
         run: docker compose --profile demo logs --no-color --tail=200

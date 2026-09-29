@@ -237,3 +237,37 @@ def test_commit_tool_unavailable_without_github(db: Any) -> None:
             == 0
         )
         assert c.execute(text("SELECT error FROM agent_steps")).scalar_one()
+
+
+def test_rule_based_investigator_needs_no_key(db: Any) -> None:
+    from opspilot.agent.heuristic import HeuristicInvestigator
+
+    engine, inc = db
+    with engine.begin() as c:
+        sid = c.execute(text("SELECT service_id FROM incidents")).scalar_one()
+        ensure_partition(c, "metric_points", T0)
+        for name, value, attrs in [
+            ("db.client.connection.count", 2, '{"state": "used"}'),
+            ("db.client.connection.max", 2, "{}"),
+        ]:
+            c.execute(
+                text(
+                    "INSERT INTO metric_points (time, service_id, name, value, attributes) "
+                    "VALUES (:t, :s, :n, :v, CAST(:a AS jsonb))"
+                ),
+                {"t": T0 + timedelta(minutes=1), "s": sid, "n": name, "v": value, "a": attrs},
+            )
+    outcome, _ = run(engine, HeuristicInvestigator())
+    assert outcome == "COMPLETED" and status(engine, inc) == "IDENTIFIED"
+    with engine.connect() as c:
+        hyps = c.execute(text("SELECT * FROM evidence WHERE level='HYPOTHESIS'")).mappings().all()
+        obs = (
+            c.execute(text("SELECT id::text FROM evidence WHERE created_by='agent'"))
+            .scalars()
+            .all()
+        )
+        proposals = c.execute(text("SELECT count(*) FROM action_proposals")).scalar_one()
+        model = c.execute(text("SELECT model FROM investigations")).scalar_one()
+    assert [h["ref"]["category"] for h in hyps] == ["RESOURCE"]
+    assert set(hyps[0]["ref"]["evidence_ids"]) <= set(obs) and model == "rules-v1"
+    assert proposals == 0  # the injected log line changes nothing and no action is proposed

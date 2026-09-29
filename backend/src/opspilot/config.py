@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
     opspilot_approver_token: str = ""
     # Optional bearer token for read APIs (`viewer` role). Empty = reads are open (local dev).
     opspilot_viewer_token: str = ""
+    # llm = Anthropic (needs ANTHROPIC_API_KEY); rules = built-in rule-based, no key; auto = llm if a key is set, else rules.
+    opspilot_investigator: Literal["llm", "rules", "auto"] = "llm"
     proposal_ttl_minutes: int = 60
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
