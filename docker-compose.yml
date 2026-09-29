@@ -16,6 +16,7 @@ x-backend-env: &backend-env
   GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
   GITHUB_WRITE_TOKEN: ${GITHUB_WRITE_TOKEN:-}
   OPSPILOT_APPROVER_TOKEN: ${OPSPILOT_APPROVER_TOKEN:-}
+  OPSPILOT_VIEWER_TOKEN: ${OPSPILOT_VIEWER_TOKEN:-}
 
 services:
   postgres:
@@ -89,6 +90,7 @@ services:
     build: ./web
     environment:
       API_INTERNAL_URL: http://api:8000
+      OPSPILOT_VIEWER_TOKEN: ${OPSPILOT_VIEWER_TOKEN:-}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:

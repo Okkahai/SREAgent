@@ -44,3 +44,20 @@ def require_approver(
     if not x_opspilot_actor or not x_opspilot_actor.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-OpsPilot-Actor header required")
     return x_opspilot_actor.strip()[:100]
+
+
+def require_viewer(
+    settings: Annotated[Settings, Depends(get_settings)],
+    authorization: Annotated[str | None, Header()] = None,
+) -> None:
+    """The `viewer` role for read APIs. Open when no viewer token is configured; the approver
+    token also passes (approvers can read what they approve)."""
+    if not settings.opspilot_viewer_token:
+        return
+    supplied = (authorization or "").removeprefix("Bearer ").strip().encode()
+    allowed = [settings.opspilot_viewer_token, settings.opspilot_approver_token]
+    ok = False
+    for token in allowed:  # no early exit: constant work per configured token
+        ok |= bool(token) and hmac.compare_digest(supplied, token.encode())
+    if not ok:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token")

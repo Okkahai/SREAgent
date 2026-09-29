@@ -1,11 +1,14 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from opspilot.adapters import postgres_incidents as q
+from opspilot.api.deps import require_viewer
 from opspilot.db.engine import get_engine
 
-router = APIRouter(prefix="/v1/incidents", tags=["incidents"])
+router = APIRouter(
+    prefix="/v1/incidents", tags=["incidents"], dependencies=[Depends(require_viewer)]
+)
 
 
 @router.get("")

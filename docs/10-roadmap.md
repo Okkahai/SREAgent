@@ -13,7 +13,7 @@ Each phase is a small series of PRs. Exit criteria must be demonstrable.
 | **7. Suggested fixes** (done) | Remediation planner, policy engine, approvals, PR executor (write scope), runbooks | A7, A8 pass |
 | **8. Dashboard** (done) | Overview, incident detail (timeline/evidence/logs/metrics/traces), services, deployments; live data | All views driven by API; e2e Playwright smoke |
 | **9. Docker/K8s** (done) | Production Dockerfiles, Helm/Kustomize, kind in CI, NetworkPolicies, HPA, OTel collector deployment | Same scenario runs on kind |
-| **10. Testing + hardening** | Load test, e2e failure-injection suite in CI, security scanning (gitleaks, Trivy, pip-audit), import-linter, RBAC hardening, docs polish, eval report | All MVP criteria (doc 09) met |
+| **10. Testing + hardening** (done) | Load test, e2e failure-injection suite in CI, security scanning (gitleaks, Trivy, pip-audit), import-linter, RBAC hardening, docs polish, eval report | All MVP criteria (doc 09) met |
 
 ## Phase 1 breakdown (this PR)
 1. Design docs 01–10 + README.

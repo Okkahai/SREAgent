@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 
-from opspilot.api.deps import require_approver
+from opspilot.api.deps import require_approver, require_viewer
 from opspilot.config import Settings, get_settings
 from opspilot.db.engine import get_engine
 from opspilot.integrations.github_write import GitHubWriter
@@ -19,7 +19,7 @@ class Decision(BaseModel):
     comment: str | None = None
 
 
-@router.get("/incidents/{ident}/proposals")
+@router.get("/incidents/{ident}/proposals", dependencies=[Depends(require_viewer)])
 def list_proposals(ident: str) -> list[dict[str, Any]]:
     with get_engine().connect() as conn:
         rows = conn.execute(
