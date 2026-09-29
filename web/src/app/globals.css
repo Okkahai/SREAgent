@@ -1,0 +1,22 @@
+:root { --bg:#0b1020; --panel:#141b30; --line:#26304d; --fg:#e6e9f2; --dim:#8b95b3;
+  --ok:#3ecf8e; --warn:#f5b73b; --bad:#ff6b6b; --info:#5aa9ff; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, sans-serif; }
+a { color:var(--info); text-decoration:none; } a:hover { text-decoration:underline; }
+nav { display:flex; gap:1.25rem; align-items:center; padding:.75rem 1.5rem; border-bottom:1px solid var(--line); }
+nav strong { margin-right:1rem; font-size:16px; }
+main { max-width:1100px; margin:0 auto; padding:1.5rem; }
+h1 { font-size:20px; margin:0 0 1rem; } h2 { font-size:15px; margin:1.75rem 0 .5rem; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
+table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:6px; }
+th, td { text-align:left; padding:.5rem .75rem; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--dim); font-weight:500; font-size:12px; } tr:last-child td { border-bottom:0; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.75rem; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.75rem 1rem; }
+.card b { display:block; font-size:24px; } .dim { color:var(--dim); }
+.empty { padding:1rem; border:1px dashed var(--line); border-radius:6px; color:var(--dim); }
+.badge { display:inline-block; padding:0 .5rem; border-radius:999px; font-size:11px; border:1px solid currentColor; }
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--info)} .muted{color:var(--dim)}
+.mono { font-family:ui-monospace, monospace; font-size:12px; word-break:break-all; }
+pre { background:#0d1326; border:1px solid var(--line); padding:.5rem; border-radius:4px; overflow:auto; max-height:12rem; margin:.25rem 0 0; }
+details summary { cursor:pointer; color:var(--dim); }
+.hyp { border-left:3px solid var(--warn); padding:.25rem .75rem; margin:.5rem 0; background:var(--panel); }

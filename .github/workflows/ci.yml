@@ -89,6 +89,33 @@ jobs:
       - if: always()
         run: docker compose down -v
 
+  web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - name: Start API and web (real Postgres, Redis, migrations)
+        run: docker compose up -d --build --wait --wait-timeout 300 postgres redis api web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npm run e2e
+        working-directory: web
+        env:
+          OPSPILOT_INGEST_TOKEN: dev-ingest-token
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+      - if: always()
+        run: docker compose down -v
+
   demo:
     runs-on: ubuntu-latest
     timeout-minutes: 30

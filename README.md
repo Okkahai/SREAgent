@@ -18,7 +18,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 5. AI investigation | done, see below |
 | 6. GitHub integration (read-only) | done, see below |
 | 7. Suggested fixes, policy, approvals | done, see below |
-| 8–10 | see [roadmap](docs/10-roadmap.md) |
+| 8. Dashboard | done, see below |
+| 9–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -95,6 +96,10 @@ curl -X POST -H "Authorization: Bearer $OPSPILOT_APPROVER_TOKEN" -H "X-OpsPilot-
 ```
 
 Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_ENABLED=true` and `GITHUB_WRITE_TOKEN`; it creates an `opspilot/...` branch and a pull request and never merges. Every step lands in the append-only `audit_log`.
+
+## Dashboard (Phase 8)
+
+`http://localhost:3000`: overview (open incidents, ingest health, recent deployments), incidents, incident detail (timeline, investigation with hypotheses linked to their evidence, suspect commit and CI runs, proposed actions with policy risk, evidence with the captured query), services (RED metrics) and deployments. Every value comes from the API; with no data the pages show empty states. Pages refresh every 10 s. The dashboard is read-only: approvals go through the API. CI runs a Playwright smoke test (`npm run e2e` in `web/`, needs the stack running) and `make demo-check` asserts the incident page renders a real incident.
 
 ## Docs
 
