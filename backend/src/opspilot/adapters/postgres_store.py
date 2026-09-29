@@ -190,7 +190,7 @@ class PostgresStore:
                 ),
                 {"s": sid, "t": d["started_at"]},
             ).scalar()
-            row = conn.execute(
+            row: Any = conn.execute(
                 text(
                     "INSERT INTO deployments (service_id, version, commit_sha, previous_deployment_id, "
                     "status, started_at, finished_at, ci_run_url, metadata) VALUES (:s, :v, :c, :p, "

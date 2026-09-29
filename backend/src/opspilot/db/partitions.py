@@ -34,10 +34,11 @@ def drop_old_partitions(
 ) -> list[str]:
     cutoff = (today or datetime.now(UTC).date()) - timedelta(days=retention_days)
     dropped: list[str] = []
-    rows = conn.execute(
+    result = conn.execute(
         text("SELECT c.relname FROM pg_class c JOIN pg_inherits i ON i.inhrelid = c.oid")
-    ).scalars()
-    for relname in list(rows):
+    )
+    rows = [str(r[0]) for r in result]
+    for relname in rows:
         m = _NAME.match(relname)
         if not m or m["table"] not in PARTITIONED_TABLES:
             continue
