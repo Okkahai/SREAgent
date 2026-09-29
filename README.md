@@ -14,7 +14,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 1. Architecture + local environment | done |
 | 2. Demo app + observability | done, see below |
 | 3. Ingestion | done, see below |
-| 4–10 | see [roadmap](docs/10-roadmap.md) |
+| 4. Incident detection | done, see below |
+| 5–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -55,6 +56,17 @@ curl localhost:8000/v1/telemetry/stats     # rows ingested per signal
 ```
 
 Writes (`/v1/otlp/v1/{traces,logs,metrics}`, `POST /v1/deployments`) need `Authorization: Bearer $OPSPILOT_INGEST_TOKEN`. Ingest accepts OTLP/HTTP protobuf (gzip supported). Migrations run with `alembic upgrade head` when the API container starts.
+
+## Incident detection (Phase 4)
+
+A Celery task evaluates deterministic rules every 15 s (error rate, p95 latency, DB pool saturation) and drives the incident lifecycle: DETECTED → MONITORING → RESOLVED, with dedupe, reopen, deployment correlation, a timeline and OBSERVATION evidence.
+
+```bash
+curl 'localhost:8000/v1/incidents?open_only=true'
+curl localhost:8000/v1/incidents/INC-0001     # timeline + evidence
+```
+
+Rules and thresholds: `backend/src/opspilot/services/detection.py`; lifecycle: `domain/incident.py` and [docs/05](docs/05-incident-lifecycle.md). No AI is involved in detection; investigation (Phase 5) starts from these incidents.
 
 Development: `make test`, `make lint`, `make fmt`. Backend needs Python 3.11 (`pip install -e 'backend[dev]'`), web needs Node 22 (`npm ci` in `web/`).
 

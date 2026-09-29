@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Bearer token required by the OTLP ingest and deployments write APIs. Empty disables them.
     opspilot_ingest_token: str = ""
     telemetry_retention_days: int = 7
+    detection_recovery_minutes: int = 10
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
 
