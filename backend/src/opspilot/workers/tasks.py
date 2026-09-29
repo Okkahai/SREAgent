@@ -59,3 +59,24 @@ def _detection_config():  # type: ignore[no-untyped-def]
 
     s = get_settings()
     return DetectionConfig(recovery_minutes=s.detection_recovery_minutes)
+
+
+@celery_app.task(name="opspilot.workers.tasks.investigate_pending")  # type: ignore[untyped-decorator]
+def investigate_pending() -> int:
+    """Claim incidents that need an investigation and fan them out to workers."""
+    from opspilot.agent.runner import claim_pending
+
+    ids = claim_pending(get_engine())
+    for inv_id in ids:
+        investigate.delay(str(inv_id))
+    return len(ids)
+
+
+@celery_app.task(name="opspilot.workers.tasks.investigate")  # type: ignore[untyped-decorator]
+def investigate(investigation_id: str) -> str:
+    from opspilot.agent.llm import AnthropicLLM
+    from opspilot.agent.runner import run_investigation
+
+    s = get_settings()
+    llm = AnthropicLLM(s.anthropic_api_key, s.llm_model) if s.anthropic_api_key else None
+    return run_investigation(get_engine(), investigation_id, llm, s.agent_max_steps)

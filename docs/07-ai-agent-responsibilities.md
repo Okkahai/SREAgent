@@ -79,3 +79,13 @@ A golden set of injected failures (doc 09) with known root causes; metrics: root
 
 ## 8. Provider abstraction
 `LLMProvider` port: `complete(messages, tools, schema) -> response`. Default adapter: Anthropic. A `FakeLLM` adapter with scripted tool calls exists for tests — used only in tests, never presented as product intelligence.
+
+## Phase 5 implementation notes
+- Code: `backend/src/opspilot/agent/` (`llm.py` port + Anthropic Messages adapter, `tools.py`, `verifier.py`, `runner.py`); tables `investigations` and `agent_steps` (migration 0003).
+- One investigation is claimed by inserting a `RUNNING` row (unique per incident), so concurrent beat ticks cannot double-run. Runs stuck for 10 min are failed; failed runs retry after 60 s, at most 3 times. Completed investigations are not repeated.
+- Structured output is a forced `submit_findings` tool call. The step budget is 8 tool calls, after which only `submit_findings` is offered.
+- Confidence caps: one signal type 0.4 (0.5 with 2+ items); two or more types 0.7 (0.9 with 3+ items). A `DEPLOYMENT` hypothesis without deployment evidence is rejected. Hypotheses citing ids not captured in this investigation are rejected.
+- Hypotheses are stored as `evidence` rows with level `HYPOTHESIS` and as `AI_HYPOTHESIS` timeline events. With at least one verified hypothesis an `INVESTIGATING` incident moves to `IDENTIFIED`; otherwise it stays `INVESTIGATING` with an "inconclusive" event listing unknowns.
+- Tool results pass through a redaction step before reaching the provider and are framed as `untrusted_data`.
+- Not yet: commit/diff evidence (Phase 6), so no hypothesis may exceed what telemetry alone supports; a golden-set accuracy evaluation (Phase 10).
+- Tests use a scripted `FakeLLM` (`backend/tests/fakes.py`); no production path uses fake intelligence.

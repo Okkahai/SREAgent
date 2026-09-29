@@ -15,7 +15,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 2. Demo app + observability | done, see below |
 | 3. Ingestion | done, see below |
 | 4. Incident detection | done, see below |
-| 5–10 | see [roadmap](docs/10-roadmap.md) |
+| 5. AI investigation | done, see below |
+| 6–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -69,6 +70,12 @@ curl localhost:8000/v1/incidents/INC-0001     # timeline + evidence
 Rules and thresholds: `backend/src/opspilot/services/detection.py`; lifecycle: `domain/incident.py` and [docs/05](docs/05-incident-lifecycle.md). No AI is involved in detection; investigation (Phase 5) starts from these incidents.
 
 Development: `make test`, `make lint`, `make fmt`. Backend needs Python 3.11 (`pip install -e 'backend[dev]'`), web needs Node 22 (`npm ci` in `web/`).
+
+## AI investigation (Phase 5)
+
+Every incident without an investigation is claimed by the `investigate_pending` beat task and run by a worker: a bounded loop of **read-only** tools (error rate, pool saturation, error logs, error spans, errors by version, recent deployments). Each tool result is stored server-side as OBSERVATION evidence; the model can only cite evidence ids. A deterministic verifier drops unsupported hypotheses, caps confidence by evidence quantity and signal diversity, and never allows `CONFIRMED_FACT`. Findings appear in `GET /v1/incidents/{id}` (`investigations`, hypothesis evidence, timeline).
+
+Set `ANTHROPIC_API_KEY` (and optionally `LLM_MODEL`) in `.env`. Without a key, or if the provider is down, the investigation is recorded as `FAILED` (retried up to 3 times) and detection is unaffected. Details: [docs/07](docs/07-ai-agent-responsibilities.md).
 
 ## Docs
 

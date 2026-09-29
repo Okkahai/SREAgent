@@ -51,8 +51,15 @@ poll "incident for sustained 500s" 180 has_open_incident
 short_id="$(open_incidents | jq -r '.[0].short_id')"
 detail="$(curl -fsS "$api/v1/incidents/$short_id")"
 echo "$short_id: $(jq -r .title <<<"$detail")"
-jq -e '(.timeline | length) >= 2 and (.evidence | length) >= 1 and (.evidence | all(.level == "OBSERVATION"))' \
+jq -e '(.timeline | length) >= 2 and (.evidence | length) >= 1 and (.evidence | map(select(.created_by == "detector")) | all(.level == "OBSERVATION"))' \
   <<<"$detail" >/dev/null || { echo "FAIL: incident lacks timeline/observation evidence"; exit 1; }
+investigation_finished() {
+  curl -fsS "$api/v1/incidents/$short_id" |
+    jq -e '.investigations | length > 0 and all(.status != "RUNNING")' >/dev/null
+}
+poll "investigation of $short_id to finish (fails as retryable without an LLM key)" 120 investigation_finished
+curl -fsS "$api/v1/incidents/$short_id" |
+  jq -r '.investigations[] | "investigation: \(.status) \(.error // "")"'
 ./scripts/fault.sh checkout clear >/dev/null
 
 echo "recovery -> incidents resolve"

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     opspilot_ingest_token: str = ""
     telemetry_retention_days: int = 7
     detection_recovery_minutes: int = 10
+    # LLM provider for investigations. Without a key, investigations fail as retryable (detection is unaffected).
+    anthropic_api_key: str = ""
+    llm_model: str = "claude-sonnet-5-5"
+    agent_max_steps: int = 8
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
 
