@@ -14,6 +14,7 @@ from opspilot.agent import tools as T
 from opspilot.agent.llm import LLM, Final, History, LLMUnavailable, redact
 from opspilot.agent.verifier import verify
 from opspilot.domain.incident import Event, InvalidTransition, Status, transition
+from opspilot.integrations.github import GitHubClient
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ Rules:
   errors and resource saturation before blaming a change. Prefer the explanation the evidence supports.
 - Confidence must reflect the evidence: fewer independent signals means lower confidence. If data is missing
   or ambiguous, say so in `unknowns` and return few or no hypotheses.
+- A CODE or CONFIG cause must cite commit_changes evidence (the diff); if that tool is unavailable, say so in
+  `unknowns` and do not claim a specific code cause.
 - Call a few tools, then call submit_findings."""
 
 
@@ -79,12 +82,19 @@ def _finish(engine: Engine, inv_id: Any, status: str, **f: Any) -> None:
         )
 
 
-def run_investigation(engine: Engine, inv_id: Any, llm: LLM | None, max_steps: int = 8) -> str:
+def run_investigation(
+    engine: Engine,
+    inv_id: Any,
+    llm: LLM | None,
+    max_steps: int = 8,
+    github: GitHubClient | None = None,
+    default_repo: str = "",
+) -> str:
     """Returns the final investigation status. Never raises for provider problems."""
     with engine.begin() as conn:
         inc = q._one(
             conn,
-            "SELECT i.*, s.name AS service, d.version AS dep_version, d.commit_sha AS dep_sha "
+            "SELECT i.*, s.name AS service, d.version AS dep_version, d.commit_sha AS dep_sha, d.metadata->>'repository' AS dep_repo "
             "FROM investigations v JOIN incidents i ON i.id = v.incident_id "
             "JOIN services s ON s.id = i.service_id LEFT JOIN deployments d ON d.id = i.deployment_id "
             "WHERE v.id = :v",
@@ -112,6 +122,11 @@ def run_investigation(engine: Engine, inv_id: Any, llm: LLM | None, max_steps: i
         return _fail(engine, inc, inv_id, reason)
 
     window = T.window_for(inc)
+    window.commit_sha, window.repo, window.github = (
+        inc["dep_sha"],
+        inc["dep_repo"] or default_repo,
+        github,
+    )
     prompt = (
         f"Incident {inc['short_id']} on service {inc['service']} ({inc['environment']}): {inc['title']}\n"
         f"rule={inc['rule']} onset={inc['started_at'].isoformat()} detected={inc['detected_at'].isoformat()}\n"
@@ -127,8 +142,27 @@ def run_investigation(engine: Engine, inv_id: Any, llm: LLM | None, max_steps: i
             if step.name not in T.TOOLS:
                 history.append((step, f"error: unknown tool {step.name!r}"))
                 continue
+            try:
+                with engine.begin() as conn:
+                    res = T.TOOLS[step.name][0](conn, window)
+            except T.ToolUnavailable as exc:
+                history.append((step, f"unavailable: {exc}"))
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "INSERT INTO agent_steps (investigation_id, seq, tool, args, error) "
+                            "VALUES (:v, :n, :t, CAST(:a AS jsonb), :e)"
+                        ),
+                        {
+                            "v": inv_id,
+                            "n": seq,
+                            "t": step.name,
+                            "a": T.render(step.args),
+                            "e": str(exc),
+                        },
+                    )
+                continue
             with engine.begin() as conn:
-                res = T.TOOLS[step.name][0](conn, window)
                 ev_id = q.add_evidence(
                     conn,
                     inc["id"],
