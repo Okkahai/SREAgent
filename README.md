@@ -19,7 +19,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 6. GitHub integration (read-only) | done, see below |
 | 7. Suggested fixes, policy, approvals | done, see below |
 | 8. Dashboard | done, see below |
-| 9–10 | see [roadmap](docs/10-roadmap.md) |
+| 9. Docker / Kubernetes | done, see below |
+| 10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -100,6 +101,10 @@ Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_E
 ## Dashboard (Phase 8)
 
 `http://localhost:3000`: overview (open incidents, ingest health, recent deployments), incidents, incident detail (timeline, investigation with hypotheses linked to their evidence, suspect commit and CI runs, proposed actions with policy risk, evidence with the captured query), services (RED metrics) and deployments. Every value comes from the API; with no data the pages show empty states. Pages refresh every 10 s. The dashboard is read-only: approvals go through the API. CI runs a Playwright smoke test (`npm run e2e` in `web/`, needs the stack running) and `make demo-check` asserts the incident page renders a real incident.
+
+## Kubernetes (Phase 9)
+
+`make kind-up kind-check kind-down` builds the images, deploys OpsPilot plus the demo shop to a kind cluster with Kustomize (`deploy/k8s`, see its README) and runs the same failure-injection scenario as `make demo-check`: faults, incident detection, bad deployment linked to version 1.1.0, rollback, recovery. CI runs it on every PR (`kind-e2e`) and validates the rendered manifests (`k8s-manifests`).
 
 ## Docs
 

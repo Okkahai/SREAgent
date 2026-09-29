@@ -2,6 +2,7 @@
 # Simulate a real deployment of checkout: recreates the container with a new version/commit.
 #   scripts/deploy.sh good   -> v1.0.0, DB_POOL_SIZE=20
 #   scripts/deploy.sh bad    -> v1.1.0, DB_POOL_SIZE=2   (regression: connection pool too small)
+# DEPLOY_TARGET=k8s rolls the checkout Deployment on kind instead (scripts/kind.sh).
 # Also records a deployment event in OpsPilot (POST /v1/deployments).
 set -euo pipefail
 variant="${1:?good|bad}"
@@ -13,7 +14,13 @@ case "$variant" in
 esac
 export CHECKOUT_COMMIT="$sha"
 echo "deploying checkout $CHECKOUT_VERSION (commit $sha, pool=$CHECKOUT_DB_POOL_SIZE)"
-docker compose --profile demo up -d --no-deps --force-recreate checkout
+if [ "${DEPLOY_TARGET:-compose}" = k8s ]; then
+  kubectl -n opspilot set env deployment/checkout \
+    SERVICE_VERSION="$CHECKOUT_VERSION" COMMIT_SHA="$CHECKOUT_COMMIT" DB_POOL_SIZE="$CHECKOUT_DB_POOL_SIZE"
+  kubectl -n opspilot rollout status deployment/checkout --timeout=180s
+else
+  docker compose --profile demo up -d --no-deps --force-recreate checkout
+fi
 
 started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 payload="{\"service\":\"checkout\",\"environment\":\"demo\",\"version\":\"$CHECKOUT_VERSION\",\"status\":\"SUCCEEDED\",\"started_at\":\"$started\""

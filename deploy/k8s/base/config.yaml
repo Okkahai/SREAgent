@@ -1,0 +1,15 @@
+# Non-secret settings. Secrets (DATABASE_URL, tokens, API keys) live in the `opspilot-secrets`
+# Secret, see secret.example.yaml. Actions stay disabled unless you change this deliberately.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opspilot-config
+data:
+  OPSPILOT_ENV: prod
+  OPSPILOT_LOG_LEVEL: INFO
+  REDIS_URL: redis://redis:6379/0
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OPSPILOT_ACTIONS_ENABLED: "false"
+  DETECTION_RECOVERY_MINUTES: "10"
+  TELEMETRY_RETENTION_DAYS: "7"
+  LLM_MODEL: claude-sonnet-5-5

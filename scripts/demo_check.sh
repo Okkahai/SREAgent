@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end check of the demo: healthy traffic, fault injection changes behaviour,
+# End-to-end check of the demo (docker compose, or kind with DEPLOY_TARGET=k8s via scripts/kind.sh): healthy traffic, fault injection changes behaviour,
 # telemetry (traces, metrics, logs) reaches the collector, and faults are reversible.
 set -euo pipefail
 gw=http://127.0.0.1:8080
@@ -83,7 +83,11 @@ echo "recovery"; [ "$(count_errors)" -eq 0 ] || { echo "FAIL: did not recover"; 
 
 echo "telemetry at collector"
 sleep 6
-logs="$(docker compose logs otel-collector 2>&1)"
+if [ "${DEPLOY_TARGET:-compose}" = k8s ]; then
+  logs="$(kubectl -n opspilot logs deployment/otel-collector 2>&1)"
+else
+  logs="$(docker compose logs otel-collector 2>&1)"
+fi
 for sig in traces metrics logs; do
   # here-string, not a pipe: grep -q exits early and would SIGPIPE echo under pipefail
   grep -qE "\"kind\": \"exporter\", \"data_type\": \"$sig\"" <<<"$logs" || { echo "FAIL: no $sig at collector"; exit 1; }
