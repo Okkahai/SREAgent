@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from opspilot import __version__
-from opspilot.api import health, incidents, ingest, platform, webhooks
+from opspilot.api import actions, health, incidents, ingest, platform, webhooks
 from opspilot.config import get_settings
 from opspilot.logging import configure_logging
 from opspilot.telemetry import setup_tracing
@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     app.include_router(platform.router)
     app.include_router(incidents.router)
     app.include_router(webhooks.router)
+    app.include_router(actions.router)
     # Exclude ingest from self-tracing: OpsPilot's own telemetry must not feed back into itself.
     FastAPIInstrumentor.instrument_app(app, excluded_urls="v1/otlp,healthz,readyz")
     return app

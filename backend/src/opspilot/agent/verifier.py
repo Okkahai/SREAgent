@@ -4,7 +4,10 @@ may be. Pure functions, no I/O (docs/07 §5)."""
 from dataclasses import dataclass, field
 from typing import Any
 
+from opspilot.domain.policy import PROPOSABLE
+
 MAX_HYPOTHESES = 3
+MAX_ACTIONS = 3
 CATEGORIES = {"DEPLOYMENT", "DEPENDENCY", "RESOURCE", "CODE", "CONFIG", "UNKNOWN"}
 
 
@@ -14,6 +17,7 @@ class Verified:
     hypotheses: list[dict[str, Any]] = field(default_factory=list)
     unknowns: list[str] = field(default_factory=list)
     rejected: list[str] = field(default_factory=list)
+    actions: list[dict[str, Any]] = field(default_factory=list)
 
 
 def confidence_cap(types: set[str], count: int) -> float:
@@ -59,6 +63,21 @@ def verify(output: dict[str, Any], evidence: dict[str, str]) -> Verified:
                 "level": "HYPOTHESIS",  # the AI can never assert CONFIRMED_FACT
             }
         )
+    if v.hypotheses:  # actions are only considered when a hypothesis survived verification
+        for a in output.get("recommended_actions", []):
+            if not isinstance(a, dict) or a.get("type") not in PROPOSABLE:
+                v.rejected.append(f"action type not proposable: {str(a)[:60]}")
+                continue
+            params = a.get("parameters")
+            v.actions.append(
+                {
+                    "type": a["type"],
+                    "title": str(a.get("title", ""))[:200] or a["type"],
+                    "rationale": str(a.get("rationale", ""))[:1000],
+                    "parameters": params if isinstance(params, dict) else {},
+                }
+            )
+        v.actions = v.actions[:MAX_ACTIONS]
     v.hypotheses.sort(key=lambda x: -x["confidence"])
     v.hypotheses = v.hypotheses[:MAX_HYPOTHESES]
     return v

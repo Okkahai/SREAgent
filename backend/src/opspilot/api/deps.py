@@ -28,3 +28,19 @@ def require_ingest_token(
     supplied = (authorization or "").removeprefix("Bearer ").strip()
     if not hmac.compare_digest(supplied.encode(), settings.opspilot_ingest_token.encode()):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token")
+
+
+def require_approver(
+    settings: Annotated[Settings, Depends(get_settings)],
+    authorization: Annotated[str | None, Header()] = None,
+    x_opspilot_actor: Annotated[str | None, Header()] = None,
+) -> str:
+    """The `approver` role. Returns the actor name recorded in approvals and the audit log."""
+    if not settings.opspilot_approver_token:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "approver token not configured")
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    if not hmac.compare_digest(supplied.encode(), settings.opspilot_approver_token.encode()):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token")
+    if not x_opspilot_actor or not x_opspilot_actor.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-OpsPilot-Actor header required")
+    return x_opspilot_actor.strip()[:100]

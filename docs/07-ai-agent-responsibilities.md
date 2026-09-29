@@ -96,3 +96,7 @@ A golden set of injected failures (doc 09) with known root causes; metrics: root
 - `commit_changes` is a normal read tool. When it cannot run (no token, no SHA, unknown commit, GitHub error) it records an errored agent step, produces no evidence and tells the model so.
 - The verifier now rejects `CODE`/`CONFIG` hypotheses that do not cite COMMIT evidence, so a specific code cause requires the diff.
 - Webhooks: signature-verified, only `workflow_run` is stored. Push/PR/deployment webhook handling and GitHub App auth are deferred; a fine-grained token is used until Phase 9/10 hardening.
+
+## Phase 7 implementation notes
+- The planner is part of `submit_findings` (`recommended_actions`), not a second call. Actions are considered only when at least one hypothesis survived verification, at most 3 are kept, and types outside the policy's proposable set are rejected. The runner stores them via `services/actions.create_proposals`, which lets the policy engine set risk.
+- Timeline gets `PROPOSAL`, `APPROVAL` (CONFIRMED_FACT: a human decision) and `ACTION` events. Incident detail lists proposals; `GET /v1/incidents/{id}/proposals` has full parameters and the hash to approve.

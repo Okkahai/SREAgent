@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_repo: str = ""  # default "owner/name" for deployments that do not name a repository
     github_webhook_secret: str = ""
+    # Write access is a separate credential used only by the approved-action executor (PR creation).
+    github_write_token: str = ""
+    # Bearer token for the `approver` role (approve/reject/execute proposals).
+    opspilot_approver_token: str = ""
+    proposal_ttl_minutes: int = 60
     max_ingest_bytes: int = 10 * 1024 * 1024
     cors_origins: str = "http://localhost:3000"
 

@@ -293,6 +293,16 @@ def get_incident(conn: Connection, ident: str) -> Row | None:
             {"i": inc["id"]},
         ).mappings()
     ]
+    inc["proposals"] = [
+        dict(r)
+        for r in conn.execute(
+            text(
+                "SELECT id, type, title, risk, status, payload_hash, expires_at FROM action_proposals "
+                "WHERE incident_id = :i ORDER BY created_at"
+            ),
+            {"i": inc["id"]},
+        ).mappings()
+    ]
     inc["evidence"] = [
         dict(r)
         for r in conn.execute(

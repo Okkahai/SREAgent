@@ -15,6 +15,7 @@ from opspilot.agent.llm import LLM, Final, History, LLMUnavailable, redact
 from opspilot.agent.verifier import verify
 from opspilot.domain.incident import Event, InvalidTransition, Status, transition
 from opspilot.integrations.github import GitHubClient
+from opspilot.services import actions as actions_svc
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ Rules:
   or ambiguous, say so in `unknowns` and return few or no hypotheses.
 - A CODE or CONFIG cause must cite commit_changes evidence (the diff); if that tool is unavailable, say so in
   `unknowns` and do not claim a specific code cause.
+- Recommend actions only when a hypothesis supports them. OPEN_PR must carry the full new content of the
+  files to change (small, reviewable). ROLLBACK/RESTART/SCALE/CONFIG_CHANGE are runbooks a human executes.
+  You cannot approve or run anything.
 - Call a few tools, then call submit_findings."""
 
 
@@ -89,6 +93,7 @@ def run_investigation(
     max_steps: int = 8,
     github: GitHubClient | None = None,
     default_repo: str = "",
+    proposal_ttl_minutes: int = 60,
 ) -> str:
     """Returns the final investigation status. Never raises for provider problems."""
     with engine.begin() as conn:
@@ -138,7 +143,7 @@ def run_investigation(
         for seq in range(max_steps + 1):
             step = llm.step(SYSTEM, prompt, history, T.tool_specs(final_only=seq == max_steps))
             if isinstance(step, Final):
-                return _complete(engine, inc, inv_id, llm, step.output, seen)
+                return _complete(engine, inc, inv_id, llm, step.output, seen, proposal_ttl_minutes)
             if step.name not in T.TOOLS:
                 history.append((step, f"error: unknown tool {step.name!r}"))
                 continue
@@ -214,6 +219,7 @@ def _complete(
     llm: LLM,
     output: dict[str, Any],
     seen: dict[str, str],
+    ttl: int = 60,
 ) -> str:
     v = verify(output, seen)
     with engine.begin() as conn:
@@ -238,6 +244,7 @@ def _complete(
                 level="HYPOTHESIS",
                 ref={"evidence_ids": h["evidence_ids"], "category": h["category"]},
             )
+        v.rejected += actions_svc.create_proposals(conn, inc["id"], inv_id, v.actions, ttl)
         if not v.hypotheses:
             q.add_event(
                 conn,

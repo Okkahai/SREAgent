@@ -17,7 +17,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 4. Incident detection | done, see below |
 | 5. AI investigation | done, see below |
 | 6. GitHub integration (read-only) | done, see below |
-| 7–10 | see [roadmap](docs/10-roadmap.md) |
+| 7. Suggested fixes, policy, approvals | done, see below |
+| 8–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -81,6 +82,19 @@ Set `ANTHROPIC_API_KEY` (and optionally `LLM_MODEL`) in `.env`. Without a key, o
 ## GitHub integration (Phase 6, read-only)
 
 Set `GITHUB_TOKEN` (fine-grained, read-only: Contents, Metadata, Actions) and `GITHUB_REPO=owner/name` (a deployment may override with `metadata.repository`). The `commit_changes` investigation tool then fetches the deployed commit's changed files, diff excerpts and CODEOWNERS owners, caches them in `commits`, and records them as COMMIT evidence; `GET /v1/incidents/{id}` shows the suspect `commit` and `ci_runs`. Without a token the tool reports itself unavailable and the agent may not claim a code cause. `POST /v1/webhooks/github` (HMAC-verified, needs `GITHUB_WEBHOOK_SECRET`) records `workflow_run` events. The client issues GET requests only.
+
+## Suggested fixes and approvals (Phase 7)
+
+After a verified hypothesis the agent may recommend actions. A deterministic policy table (`domain/policy.py`) assigns risk: `OPEN_PR` is LOW and the only thing OpsPilot can execute; `ROLLBACK`/`RESTART`/`SCALE`/`CONFIG_CHANGE` are HIGH runbooks a human performs; `MERGE_PR`, DB and infra changes are refused. Proposals expire after `PROPOSAL_TTL_MINUTES` (60).
+
+```bash
+curl -H "Authorization: Bearer $OPSPILOT_APPROVER_TOKEN" -H "X-OpsPilot-Actor: you" -H 'content-type: application/json' \
+  -d '{"decision":"APPROVE","payload_hash":"<hash from GET /v1/incidents/INC-0001/proposals>"}' \
+  localhost:8000/v1/proposals/<id>/decision
+curl -X POST -H "Authorization: Bearer $OPSPILOT_APPROVER_TOKEN" -H "X-OpsPilot-Actor: you" localhost:8000/v1/proposals/<id>/execute
+```
+
+Execution needs an approval bound to the exact payload hash, `OPSPILOT_ACTIONS_ENABLED=true` and `GITHUB_WRITE_TOKEN`; it creates an `opspilot/...` branch and a pull request and never merges. Every step lands in the append-only `audit_log`.
 
 ## Docs
 

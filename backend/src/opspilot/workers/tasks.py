@@ -82,5 +82,11 @@ def investigate(investigation_id: str) -> str:
     llm = AnthropicLLM(s.anthropic_api_key, s.llm_model) if s.anthropic_api_key else None
     gh = GitHubClient(s.github_token) if s.github_token else None
     return run_investigation(
-        get_engine(), investigation_id, llm, s.agent_max_steps, gh, s.github_repo
+        get_engine(),
+        investigation_id,
+        llm,
+        s.agent_max_steps,
+        gh,
+        s.github_repo,
+        s.proposal_ttl_minutes,
     )
