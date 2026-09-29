@@ -13,7 +13,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | Design docs (10 deliverables) | done, see [docs/](docs/) |
 | 1. Architecture + local environment | done |
 | 2. Demo app + observability | done, see below |
-| 3–10 | see [roadmap](docs/10-roadmap.md) |
+| 3. Ingestion | done, see below |
+| 4–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 
@@ -42,6 +43,18 @@ make demo-check                                # automated end-to-end failure-in
 ```
 
 Every failure changes real behaviour (errors, latency, saturation), so the resulting telemetry is genuine. Services emit OTLP traces, metrics and logs with `service.name`, `service.version`, `deployment.environment.name` and `vcs.ref.head.revision`, and logs carry `trace_id`/`span_id`. Details: [demo/README.md](demo/README.md).
+
+## Ingestion (Phase 3)
+
+The collector forwards OTLP to the API, which stores it in Postgres (daily-partitioned tables, 7-day retention) with service, version, commit and trace correlation:
+
+```bash
+curl localhost:8000/v1/services            # per-service RED metrics (last 5 min) + latest deployment
+curl localhost:8000/v1/deployments         # deployment history (scripts/deploy.sh records these)
+curl localhost:8000/v1/telemetry/stats     # rows ingested per signal
+```
+
+Writes (`/v1/otlp/v1/{traces,logs,metrics}`, `POST /v1/deployments`) need `Authorization: Bearer $OPSPILOT_INGEST_TOKEN`. Ingest accepts OTLP/HTTP protobuf (gzip supported). Migrations run with `alembic upgrade head` when the API container starts.
 
 Development: `make test`, `make lint`, `make fmt`. Backend needs Python 3.11 (`pip install -e 'backend[dev]'`), web needs Node 22 (`npm ci` in `web/`).
 

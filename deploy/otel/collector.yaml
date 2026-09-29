@@ -1,5 +1,5 @@
-# Phase 1: receive OTLP and surface it via the debug exporter.
-# Phase 3 adds an otlphttp exporter to the OpsPilot ingest API.
+# Receives OTLP from applications, exports to the OpsPilot ingest API (Phase 3)
+# and keeps the debug exporter so telemetry is visible in collector logs.
 receivers:
   otlp:
     protocols:
@@ -17,6 +17,14 @@ processors:
 exporters:
   debug:
     verbosity: basic
+  otlphttp/opspilot:
+    endpoint: http://api:8000/v1/otlp
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:OPSPILOT_INGEST_TOKEN}"
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 120s
 
 extensions:
   health_check:
@@ -28,12 +36,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [debug, otlphttp/opspilot]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [debug, otlphttp/opspilot]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [debug, otlphttp/opspilot]
