@@ -13,6 +13,7 @@ celery_app.conf.update(
     beat_schedule={
         "heartbeat": {"task": "opspilot.workers.tasks.heartbeat", "schedule": 30.0},
         "rollup": {"task": "opspilot.workers.tasks.rollup_service_metrics", "schedule": 15.0},
+        "detect": {"task": "opspilot.workers.tasks.detect_incidents", "schedule": 15.0},
         "partitions": {"task": "opspilot.workers.tasks.maintain_partitions", "schedule": 3600.0},
     },
 )

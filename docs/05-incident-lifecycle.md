@@ -72,3 +72,11 @@ Append-only `incident_events` — every deployment, anomaly, log pattern, state 
 
 ## Outcome measurement
 On resolve, `outcome` records: result (`RECOVERED_AFTER_ACTION`, `RECOVERED_SELF`, `NO_ACTION_NEEDED`, `FALSE_POSITIVE`), MTTD/MTTR, whether the human-confirmed root cause matched the AI's top hypothesis (feeds evaluation, doc 09), and follow-up notes.
+
+## Phase 4 implementation notes
+- Implemented transitions: detection (`BREACH`/`RECOVERING`/`RECOVERED`), reopen and dedupe. Investigation, action and close transitions exist in the state machine but are driven by later phases.
+- Any open, unhealthy incident whose signal recovers moves to `MONITORING` (not directly to `RESOLVED`), then to `RESOLVED` after `DETECTION_RECOVERY_MINUTES` (default 10) of continuous health. `resolved_at` is the start of the healthy window.
+- A window with too little traffic is `NO_DATA`: it never opens, resolves or reopens anything.
+- Reopen only happens if the same fingerprint breaches within 30 min **and** the correlated deployment is unchanged; a new deployment context opens a new incident.
+- Deployment correlation is a *link* (latest deployment within 15 min before onset, preferring the same service), recorded as an OBSERVATION. Causation is a Phase 5 hypothesis.
+- Baselines use the median per-minute error rate and cap it at 5% so a running outage cannot become the "normal" the detector learns.
