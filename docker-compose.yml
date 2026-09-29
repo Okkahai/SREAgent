@@ -7,6 +7,7 @@ x-backend-env: &backend-env
   OPSPILOT_LOG_LEVEL: ${OPSPILOT_LOG_LEVEL:-INFO}
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
   OPSPILOT_ACTIONS_ENABLED: ${OPSPILOT_ACTIONS_ENABLED:-false}
+  OPSPILOT_INGEST_TOKEN: ${OPSPILOT_INGEST_TOKEN:-dev-ingest-token}
 
 services:
   postgres:
@@ -38,6 +39,8 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.111.0
     command: ["--config=/etc/otel/collector.yaml"]
+    environment:
+      OPSPILOT_INGEST_TOKEN: ${OPSPILOT_INGEST_TOKEN:-dev-ingest-token}
     volumes:
       - ./deploy/otel/collector.yaml:/etc/otel/collector.yaml:ro
     ports:
@@ -46,6 +49,7 @@ services:
 
   api:
     build: ./backend
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn opspilot.main:app --host 0.0.0.0 --port 8000"]
     environment: *backend-env
     ports:
       - "127.0.0.1:8000:8000"

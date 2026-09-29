@@ -42,4 +42,17 @@ for sig in traces metrics logs; do
   # here-string, not a pipe: grep -q exits early and would SIGPIPE echo under pipefail
   grep -qE "\"kind\": \"exporter\", \"data_type\": \"$sig\"" <<<"$logs" || { echo "FAIL: no $sig at collector"; exit 1; }
 done
+echo "telemetry stored in OpsPilot"
+sleep 20   # let the 15s rollup task run
+api=http://127.0.0.1:8000
+stats="$(curl -fsS "$api/v1/telemetry/stats")"; echo "$stats"
+for t in spans log_records metric_points; do
+  [ "$(jq ".$t" <<<"$stats")" -gt 0 ] || { echo "FAIL: no $t stored in OpsPilot"; exit 1; }
+done
+services="$(curl -fsS "$api/v1/services")"
+jq -e 'map(select(.name=="checkout")) | length == 1' <<<"$services" >/dev/null || { echo "FAIL: checkout not registered"; exit 1; }
+jq -e 'map(.error_count) | add > 0' <<<"$services" >/dev/null || { echo "FAIL: injected errors not visible in rollups"; exit 1; }
+deploys="$(curl -fsS "$api/v1/deployments?service=checkout")"
+jq -e 'map(.version) | (index("1.1.0") != null and index("1.0.0") != null)' <<<"$deploys" >/dev/null \
+  || { echo "FAIL: bad/good deployments not recorded"; exit 1; }
 echo "OK"

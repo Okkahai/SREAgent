@@ -59,3 +59,10 @@ Baseline = same service/route, previous 60 min excluding the current window (sea
 
 ## 6. Local stack
 Collector config: `deploy/otel/collector.yaml`. In Phase 1 it exposes OTLP receivers and a `debug` exporter (so telemetry visibly flows); the `otlphttp` exporter to OpsPilot is enabled in Phase 3 when the ingest endpoints exist.
+
+## 7. Phase 3 implementation notes
+- OTLP/HTTP **protobuf** only (JSON is not implemented); gzip request bodies are supported and their decompressed size is bounded.
+- Histograms are stored as `<name>.count` / `<name>.sum` points; request latency percentiles come from **server spans** in the per-minute rollup (`service_metrics_1m`, refreshed every 15 s by the `rollup` Celery task), not from histogram buckets.
+- Records with timestamps older than the retention window or more than 1 hour in the future are dropped, which also bounds partition creation.
+- `deployments` rows are written through `POST /v1/deployments`; `commit_sha` is a plain column until the GitHub integration (Phase 6) adds repositories/commits.
+- Read endpoints are unauthenticated for now; dashboard auth/RBAC arrives with Phase 10 hardening.

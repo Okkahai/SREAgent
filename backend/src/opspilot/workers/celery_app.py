@@ -12,6 +12,8 @@ celery_app.conf.update(
     timezone="UTC",
     beat_schedule={
         "heartbeat": {"task": "opspilot.workers.tasks.heartbeat", "schedule": 30.0},
+        "rollup": {"task": "opspilot.workers.tasks.rollup_service_metrics", "schedule": 15.0},
+        "partitions": {"task": "opspilot.workers.tasks.maintain_partitions", "schedule": 3600.0},
     },
 )
 celery_app.autodiscover_tasks(["opspilot.workers"])
