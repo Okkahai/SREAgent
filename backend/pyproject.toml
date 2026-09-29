@@ -1,0 +1,45 @@
+[project]
+name = "opspilot"
+version = "0.1.0"
+description = "OpsPilot: AI-powered DevOps/SRE incident investigation platform"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic-settings>=2.4",
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
+  "redis>=5.0",
+  "celery>=5.4",
+  "opentelemetry-api>=1.27",
+  "opentelemetry-sdk>=1.27",
+  "opentelemetry-exporter-otlp-proto-http>=1.27",
+  "opentelemetry-instrumentation-fastapi>=0.48b0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+ignore_missing_imports = true
