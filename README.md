@@ -15,7 +15,8 @@ Design principles: deterministic detection, evidence-backed AI (every claim is l
 | 2. Demo app + observability | done, see below |
 | 3. Ingestion | done, see below |
 | 4. Incident detection | done, see below |
-| 5–10 | see [roadmap](docs/10-roadmap.md) |
+| 5. AI investigation | done, see below |
+| 6–10 | see [roadmap](docs/10-roadmap.md) |
 
 ## Quickstart
 

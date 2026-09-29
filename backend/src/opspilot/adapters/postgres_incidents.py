@@ -204,13 +204,15 @@ def add_evidence(
     ref: dict[str, Any],
     captured_query: str | None = None,
     created_by: str = "detector",
-) -> None:
-    conn.execute(
+    level: str = "OBSERVATION",
+) -> Any:
+    return conn.execute(
         text(
             "INSERT INTO evidence (incident_id, level, type, summary, ref, captured_query, created_by) "
-            "VALUES (:i, 'OBSERVATION', :t, :s, CAST(:ref AS jsonb), :q, :by)"
+            "VALUES (:i, :lvl, :t, :s, CAST(:ref AS jsonb), :q, :by) RETURNING id"
         ),
         {
+            "lvl": level,
             "i": incident_id,
             "t": type_,
             "s": summary,
@@ -218,7 +220,7 @@ def add_evidence(
             "q": captured_query,
             "by": created_by,
         },
-    )
+    ).scalar_one()
 
 
 # -- reads for the API ----------------------------------------------------------------------
@@ -251,6 +253,16 @@ def get_incident(conn: Connection, ident: str) -> Row | None:
             text(
                 "SELECT occurred_at, kind, source, level, summary, ref FROM incident_events "
                 "WHERE incident_id = :i ORDER BY occurred_at, id"
+            ),
+            {"i": inc["id"]},
+        ).mappings()
+    ]
+    inc["investigations"] = [
+        dict(r)
+        for r in conn.execute(
+            text(
+                "SELECT id, status, model, error, result, started_at, finished_at FROM investigations "
+                "WHERE incident_id = :i ORDER BY started_at"
             ),
             {"i": inc["id"]},
         ).mappings()
