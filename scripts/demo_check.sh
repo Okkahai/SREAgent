@@ -60,6 +60,11 @@ investigation_finished() {
 poll "investigation of $short_id to finish (fails as retryable without an LLM key)" 120 investigation_finished
 curl -fsS "$api/v1/incidents/$short_id" |
   jq -r '.investigations[] | "investigation: \(.status) \(.error // "")"'
+page="$(curl -fsS "http://127.0.0.1:3000/incidents/$short_id")"
+for needle in "$short_id" "Timeline" "Evidence" "Investigation"; do
+  grep -q "$needle" <<<"$page" || { echo "FAIL: dashboard incident page lacks '$needle'"; exit 1; }
+done
+echo "dashboard incident page renders live incident data"
 ./scripts/fault.sh checkout clear >/dev/null
 
 echo "recovery -> incidents resolve"
