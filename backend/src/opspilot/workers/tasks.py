@@ -1,9 +1,13 @@
 import logging
+from typing import TYPE_CHECKING
 
 from opspilot.adapters.postgres_store import PostgresStore
 from opspilot.config import get_settings
 from opspilot.db.engine import get_engine
 from opspilot.workers.celery_app import celery_app
+
+if TYPE_CHECKING:
+    from opspilot.services.detection import DetectionConfig
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +58,7 @@ def detect_incidents() -> bool:
     return True
 
 
-def _detection_config():  # type: ignore[no-untyped-def]
+def _detection_config() -> "DetectionConfig":
     from opspilot.services.detection import DetectionConfig
 
     s = get_settings()
