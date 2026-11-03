@@ -164,7 +164,7 @@ Backend needs Python 3.11 (`pip install -e 'backend[dev]'`), web needs Node 22 (
 | [02 Architecture](docs/02-architecture.md) | [07 AI agent responsibilities](docs/07-ai-agent-responsibilities.md) |
 | [03 Repository structure](docs/03-repository-structure.md) | [08 Security boundaries](docs/08-security-boundaries.md) |
 | [04 Database schema](docs/04-database-schema.md) | [09 MVP acceptance criteria](docs/09-mvp-acceptance-criteria.md) |
-| [05 Incident lifecycle](docs/05-incident-lifecycle.md) | [10 Roadmap](docs/10-roadmap.md) and [11 Evaluation](docs/11-evaluation.md) |
+| [05 Incident lifecycle](docs/05-incident-lifecycle.md) | [10 Roadmap](docs/10-roadmap.md) and [11 Evaluation](docs/11-evaluation.md) | | [12 Deploy on Hetzner](docs/12-deploy-hetzner.md)
 
 ## Troubleshooting
 

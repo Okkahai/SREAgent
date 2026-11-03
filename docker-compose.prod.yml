@@ -1,0 +1,123 @@
+# Single-server production stack (Hetzner VPS etc.): docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Nothing but Caddy (80/443) is published. See docs/12-deploy-hetzner.md.
+name: opspilot
+
+x-log: &log
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://opspilot:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/opspilot
+  REDIS_URL: redis://redis:6379/0
+  OPSPILOT_ENV: prod
+  OPSPILOT_LOG_LEVEL: ${OPSPILOT_LOG_LEVEL:-INFO}
+  OPSPILOT_ACTIONS_ENABLED: ${OPSPILOT_ACTIONS_ENABLED:-false}
+  OPSPILOT_INGEST_TOKEN: ${OPSPILOT_INGEST_TOKEN:?set OPSPILOT_INGEST_TOKEN}
+  OPSPILOT_VIEWER_TOKEN: ${OPSPILOT_VIEWER_TOKEN:?set OPSPILOT_VIEWER_TOKEN}
+  OPSPILOT_APPROVER_TOKEN: ${OPSPILOT_APPROVER_TOKEN:?set OPSPILOT_APPROVER_TOKEN}
+  TELEMETRY_RETENTION_DAYS: ${TELEMETRY_RETENTION_DAYS:-7}
+  DETECTION_RECOVERY_MINUTES: ${DETECTION_RECOVERY_MINUTES:-10}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPSPILOT_INVESTIGATOR: ${OPSPILOT_INVESTIGATOR:-auto}
+  LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5-5}
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+  GITHUB_REPO: ${GITHUB_REPO:-}
+  GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+  GITHUB_WRITE_TOKEN: ${GITHUB_WRITE_TOKEN:-}
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DASH_DOMAIN: ${DASH_DOMAIN:?set DASH_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+      DASH_USER: ${DASH_USER:-admin}
+      DASH_PASSWORD_HASH: ${DASH_PASSWORD_HASH:?set DASH_PASSWORD_HASH}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    mem_limit: 64m
+    logging: *log
+    depends_on: [web, api]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=50"]
+    environment:
+      POSTGRES_USER: opspilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: opspilot
+    volumes: [pgdata:/var/lib/postgresql/data]
+    mem_limit: 384m
+    logging: *log
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opspilot -d opspilot"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "no"]
+    mem_limit: 96m
+    logging: *log
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn opspilot.main:app --host 0.0.0.0 --port 8000"]
+    environment: *backend-env
+    mem_limit: 320m
+    logging: *log
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/healthz', timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    command: ["celery", "-A", "opspilot.workers.celery_app", "worker", "-l", "info", "-Q", "default", "-c", "2"]
+    environment: *backend-env
+    mem_limit: 512m
+    logging: *log
+    depends_on:
+      api: {condition: service_healthy}
+
+  beat:
+    build: ./backend
+    restart: unless-stopped
+    command: ["celery", "-A", "opspilot.workers.celery_app", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+    environment: *backend-env
+    mem_limit: 192m
+    logging: *log
+    depends_on:
+      api: {condition: service_healthy}
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      OPSPILOT_VIEWER_TOKEN: ${OPSPILOT_VIEWER_TOKEN:?set OPSPILOT_VIEWER_TOKEN}
+    mem_limit: 256m
+    logging: *log
+    depends_on:
+      api: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  caddy_data:
