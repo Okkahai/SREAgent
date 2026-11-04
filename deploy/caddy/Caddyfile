@@ -1,0 +1,18 @@
+# Dashboard: basic auth (the API's viewer token only protects the API, not the web page).
+{$DASH_DOMAIN} {
+	basic_auth {
+		{$DASH_USER} {$DASH_PASSWORD_HASH}
+	}
+	reverse_proxy web:3000
+}
+
+# Public API surface: only what external callers need. Each route is token/HMAC protected by the API.
+{$API_DOMAIN} {
+	@public path /v1/otlp/* /v1/deployments /v1/webhooks/github /v1/proposals/* /healthz
+	handle @public {
+		reverse_proxy api:8000
+	}
+	handle {
+		respond "not found" 404
+	}
+}

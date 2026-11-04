@@ -206,12 +206,14 @@ jobs:
       - name: Render manifests
         run: |
           mkdir -p /tmp/rendered && kubectl kustomize --load-restrictor=LoadRestrictionsNone deploy/k8s/overlays/kind > /tmp/rendered/all.yaml
-      - uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: config
-          scan-ref: /tmp/rendered
-          severity: HIGH,CRITICAL
-          exit-code: "1"
+      # trivy-action's own installer broke upstream (exit 6), so install the pinned release with a checksum check.
+      - name: Trivy config scan
+        run: |
+          V=0.70.0
+          curl -sSLO https://github.com/aquasecurity/trivy/releases/download/v$V/trivy_${V}_Linux-64bit.tar.gz
+          curl -sSL https://github.com/aquasecurity/trivy/releases/download/v$V/trivy_${V}_checksums.txt | grep Linux-64bit.tar.gz | sha256sum -c -
+          tar xzf trivy_${V}_Linux-64bit.tar.gz trivy
+          ./trivy config --skip-version-check --severity HIGH,CRITICAL --exit-code 1 /tmp/rendered
 
   secrets-scan:
     runs-on: ubuntu-latest
