@@ -23,4 +23,4 @@ Status column: **Historical** = taken earlier (design docs, PR descriptions, or 
 | D-017 | Next.js 15.5.x kept; the PostCSS build-time advisory is accepted, CI gates at `critical` | PR #14, ci.yml comment | Historical (revisit: T-008) |
 | D-018 | Trivy installed as a pinned release with checksum, not via trivy-action | PR #14 | Historical |
 | D-019 | Development moves to local multi-agent workflow (T3 Code, Claude Code, Codex CLI, worktrees, independent reviewers, GitHub CI); agents never merge; shared rules in AGENTS.md | Gün approved docs-only migration PR, 2026-11-06 | Historical |
-| D-020 | Handoff state lives in `docs/agent/*` and is updated in the same PR as the work | this PR | Proposed (awaiting review of this PR) |
+| D-020 | Handoff state lives in `docs/agent/*` and is updated in the same PR as the work | PR #15, approved by Gün 2026-11-10 | Historical |

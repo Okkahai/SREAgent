@@ -39,6 +39,7 @@ Port clash? Set `POSTGRES_HOST_PORT`, `REDIS_HOST_PORT`, `WEB_HOST_PORT`, `API_H
 |------|------|--------|----------|
 | 2026-11-04 | Full CI on `main` @ d022124 | success (all 10 jobs) | Actions run #40, https://github.com/Okkahai/SREAgent/actions/runs/41757992234 |
 | 2026-11-06 | Repo state read for migration (git log, PR list, workflows, docs) | consistent with PROJECT_STATE.md | this PR |
+| 2026-11-06 | CI on docs PR #15 head 9d371e0 | success (10/10 jobs) | run 42229325340 |
 | 2026-11-06 | Cloud sandbox: Docker daemon | unavailable; compose, demo, kind, prod stack not runnable there | session note |
 
 ## Local verification log (append below)

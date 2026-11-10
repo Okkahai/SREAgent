@@ -4,13 +4,12 @@ Written 2026-11-06 when moving development from cloud Claude Code sessions to a 
 
 ## Where things stand
 - Product work is complete through roadmap Phases 1-10 plus PRs #11-#14. `main` @ `d022124`, CI green. No open PRs. No unmerged work on any remote branch.
-- This PR (docs-only) adds `AGENTS.md`, `CLAUDE.md` and `docs/agent/*`. Nothing else changed. It is left open for Gün's review; it has not been merged.
+- PR #15 (docs-only) added `AGENTS.md`, `CLAUDE.md` and `docs/agent/*`; Gün approved it on 2026-11-10 and it is merged to `main`. Nothing else changed.
 
 ## Do this next (exact)
-1. Gün reviews and merges the docs PR (or asks for edits).
-2. Run **T-001** locally: fresh worktree, follow [VERIFICATION.md](VERIFICATION.md), record results in its "Local verification log".
-3. When Gün has a server: **T-002**. Until then it stays BLOCKED.
-4. Ask Gün for: domain (or IP-only test), Hetzner server, Market OS repo URL, and (for T-005) whether to supply an Anthropic key and a spend cap.
+1. Run **T-001** locally: fresh worktree, follow [VERIFICATION.md](VERIFICATION.md), record results in its "Local verification log".
+2. When Gün has a server: **T-002**. Until then it stays BLOCKED.
+3. Ask Gün for: domain (or IP-only test), Hetzner server, Market OS repo URL, and (for T-005) whether to supply an Anthropic key and a spend cap.
 
 ## Do not
 - Start implementation work that is not in TASK_REGISTRY.md without asking.
